@@ -1,9 +1,17 @@
 package nl.vindh.bitwise
 
+import org.scalactic.Prettifier
 import org.scalatest._
 import types._
 
 class BitSequenceSpec extends FlatSpec with Matchers {
+  // Arrange
+  val x1 = BitVar("x1")
+  val x2 = BitVar("x2")
+  val x3 = BitVar("x3")
+  val x4 = BitVar("x4")
+  val x5 = BitVar("x5")
+
   "BitSequence" should "generate a BitSequence" in {
     // Arrange
 
@@ -50,6 +58,18 @@ class BitSequenceSpec extends FlatSpec with Matchers {
     assert(xor.toInt === 19)
   }
 
+  it should "implement eq" in {
+    // Arrange
+    val xs = BitSequence(14, 8) //Note that the answer depends on the word size
+    val ys = BitSequence(29, 8)
+
+    // Act
+    val eq = xs <-> ys
+
+    // Assert
+    assert(eq.toInt === 236)
+  }
+
   it should "implement !" in {
     // Arrange
     val xs = BitSequence(17, 8) // Note that the answer depends on the word size
@@ -63,7 +83,7 @@ class BitSequenceSpec extends FlatSpec with Matchers {
 
   it should "implement >>>" in {
     // Arrange
-    val xs = BitSequence(23, 8) // Note that the answer depents on the word size
+    val xs = BitSequence(23, 8) // Note that the answer depends on the word size
 
     // Act
     val rot = xs >>> 2
@@ -83,5 +103,27 @@ class BitSequenceSpec extends FlatSpec with Matchers {
     // Assert
     assert(sum.toInt === 68)
     assert(sum.length === xs.length)
+  }
+
+  it should "implement variable" in {
+    // Arrange
+
+    // Act
+    val xs = BitSequence.variable("x", 4)
+
+    // Assert
+    assert(xs.toString === "(x0,x1,x2,x3)")
+  }
+
+  it should "implement substitute" in {
+    // Arrange
+    val xs = BitSequence.variable("x", 4)
+    val m = Map(x1 -> ZERO, x2 -> ONE)
+
+    // Act
+    val s = xs.substitute(m)
+
+    // Assert
+    assert(s.toString === "(x0,0,1,x3)")
   }
 }

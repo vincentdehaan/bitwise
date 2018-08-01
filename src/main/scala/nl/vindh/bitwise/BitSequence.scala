@@ -2,9 +2,10 @@ package nl.vindh.bitwise
 
 import types._
 
-class BitSequence private(val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: why does toString give stackoverflow if I change the base class to LinearSeq?
+class BitSequence private(val bits: Seq[Bit]) extends scala.collection.immutable.LinearSeq[Bit]{//IndexedSeq[Bit]{ // TODO: why does toString give stackoverflow if I change the base class to LinearSeq?
   def apply(idx: Int): Bit = bits(idx)
   def length: Int = bits.length
+  override def toString: String = bits.mkString("(", ",", ")")
 
   def toInt: Int = bits.zipWithIndex.map{
     _ match {
@@ -27,6 +28,8 @@ class BitSequence private(val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: 
 
   def ^ (that: BitSequence): BitSequence = binOp(that, _ ^ _)
 
+  def <-> (that: BitSequence): BitSequence = binOp(that, _ <-> _)
+
   def unary_! : BitSequence = new BitSequence(this.bits.map(! _))
 
   def >>> (rot: Int): BitSequence = new BitSequence(bits.drop(rot) ++ bits.take(rot))
@@ -39,6 +42,8 @@ class BitSequence private(val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: 
             (((left ^ right) ^ carry) :: lst, ((left ^ right) & carry) | left & right)
         }
       }._1.reverse)
+  // TODO: if I use map instead of bits.map, I get a stackoverflow error
+  def substitute(vars: Map[BitVar, Bit]): BitSequence = new BitSequence(bits.map(bit => bit.substitute(vars)))
 }
 
 object BitSequence {
@@ -48,4 +53,8 @@ object BitSequence {
     new BitSequence(
       0 until size map (n => if((i & (1 << n)) != 0) ONE else ZERO),
     )
+
+  def variable(prefix: String, size: Int) = new BitSequence(
+    0 until size map (n => BitVar(prefix + n))
+  )
 }
