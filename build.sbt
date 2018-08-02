@@ -9,4 +9,5 @@ lazy val root = (project in file(".")).
     )),
     name := "bitwise",
     libraryDependencies += scalaTest % Test,
+    libraryDependencies += scalaCheck % Test
   )

@@ -154,9 +154,9 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions {
     // Act
     val andOrNot = f.onlyAndOrNot
 
+    // Assert
     assertEquivalence(f, andOrNot, List(x1, x2, x3, x4, x5))
-    assert(!andOrNot.toString.contains('^'))
-    assert(!andOrNot.toString.contains('='))
+    assertAndOrNot(andOrNot)
   }
 
   it should "implement pushNotInside" in {
@@ -166,13 +166,21 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions {
     // Act
     val notInside = f.pushNotInside
 
+    // Assert
     assertEquivalence(f, notInside, List(x1, x2, x3, x4, x5))
-    assertTree(notInside){
-      _ match {
-        case BitNot(not) => not.isInstanceOf[BitVar]
-        case _ => true
-      }
-    }
+    assertNotInside(notInside)
+  }
+
+  it should "implement pushOrInside" in {
+    // Arrange
+    val f = ((x1 & !x2) | (x3 & x4 & (x5| x3)) | x1) | !x4
+
+    // Act
+    val orInside = f.pushOrInside
+
+    // Assert
+    assertEquivalence(f, orInside, List(x1, x2, x3, x4, x5))
+    assertOrInside(orInside)
   }
 
   "BitAnd" should "implement substitute" in {
@@ -198,6 +206,30 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions {
     assert(andOrNot === f)
   }
 
+  it should "implement pushNotInside" in {
+    // Arrange
+    val f = (!(x1 & x2)) & x3
+
+    // Act
+    val notInside = f.pushNotInside
+
+    // Assert
+    assertEquivalence(f, notInside, List(x1, x2, x3))
+    assertNotInside(notInside)
+  }
+
+  it should "implement associateRight" in {
+    // Arrange
+    val f = ((x1 & x2) & (x3 & x4)) & x5
+
+    // Act
+    val right = f.associateRight
+
+    // Assert
+    assertEquivalence(f, right, List(x1, x2, x3, x4, x5))
+    assertAssociateRight(right)
+  }
+
   "BitOr" should "implement substitute" in {
     // Arrange
     val f = x1 | x2
@@ -219,6 +251,34 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions {
 
     // Assert
     assert(andOrNot === f)
+  }
+
+  it should "implement pushNotInside" in {
+    // Arrange
+    val f = (!(x1 | x2)) | x3
+
+    // Act
+    val notInside = f.pushNotInside
+
+    // Assert
+    assertEquivalence(f, notInside, List(x1, x2, x3))
+    assertNotInside(notInside)
+  }
+
+  it should "implement pushOrInside" in {
+    // Arrange
+    val f = x1 | (x2 & x3)
+    val g = (x1 & x2) | x3
+
+    // Act
+    val fOrInside = f.pushOrInside
+    val gOrInside = g.pushOrInside
+
+    // Assert
+    assertEquivalence(f, fOrInside, List(x1, x2, x3))
+    assertEquivalence(g, gOrInside, List(x1, x2, x3))
+    assertOrInside(fOrInside)
+    assertOrInside(gOrInside)
   }
 
   "BitXor" should "implement substitute" in {
@@ -288,6 +348,34 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions {
 
     // Assert
     assert(andOrNot === f)
+  }
+
+  it should "implement pushNotInside" in {
+    // Arrange
+    val f = !(x1 & x2)
+    val g = !(x1 | x2)
+
+    // Act
+    val fNotInside = f.pushNotInside
+    val gNotInside = g.pushNotInside
+
+    // Assert
+    assertEquivalence(f, fNotInside, List(x1, x2))
+    assertEquivalence(g, gNotInside, List(x1, x2))
+    assertNotInside(fNotInside)
+    assertNotInside(gNotInside)
+  }
+
+  it should "implement pushOrInside" in {
+    // Arrange
+    val f = !(x1 | (x2 & x3))
+
+    // Act
+    val fOrInside = f.pushOrInside
+
+    // Assert
+    assertEquivalence(f, fOrInside, List(x1, x2, x3))
+    assertOrInside(fOrInside)
   }
 
   "BitVar" should "implement substitute" in {
