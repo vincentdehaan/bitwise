@@ -9,7 +9,7 @@ class BitSequence private(val bits: Seq[Bit]) extends scala.collection.immutable
 
   def toInt: Int = bits.zipWithIndex.map{
     _ match {
-      case (bit: BitValue, exp: Int) => bit.value * scala.math.pow(2, exp).toInt
+      case (bit: BitValue, exp: Int) => (if(bit.value) 1 else 0) * scala.math.pow(2, exp).toInt
       case _ => throw new Exception("toInt only possible with sequence of values")
     }
   }.sum

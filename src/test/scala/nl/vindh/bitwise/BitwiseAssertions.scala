@@ -2,21 +2,29 @@ package nl.vindh.bitwise
 
 import org.scalatest._
 
-// TODO
 import nl.vindh.bitwise.types.{ONE, ZERO}
 
 trait BitwiseAssertions extends Matchers {
   // TODO: enhance assert error messages
-  // TODO: remove varnames parameter
-  def assertEquivalence(left: Bit, right: Bit, varnames: List[BitVar]): Unit = {
-    require(varnames.length <= 16, "Too many variables for testing")
+  def assertEquivalence(left: Bit, right: Bit): Unit = {
+    def getVariables(bit: Bit): Set[BitVar] = bit match {
+      case bvar: BitVar => Set(bvar)
+      case bin: BinaryOperator => getVariables(bin.left) ++ getVariables(bin.right)
+      case BitNot(not) => getVariables(not)
+      case _ => Set()
+    }
 
-    (0 until scala.math.pow(2, varnames.length).toInt).foreach {
+    val varnamesLeft = getVariables(left)
+    val varnamesRight = getVariables(right)
+    if(varnamesLeft != varnamesRight) throw new Exception("Formulas don't have the same variables!")
+
+    val varnames = varnamesLeft.toList
+
+    (0 until scala.math.pow(2, varnames.size).toInt).foreach {
       testcase => {
-        val valuation = (0 until varnames.length map {
+        val valuation = (0 until varnames.size map {
           position => varnames(position) -> (if ((testcase & (1 << position)) != 0) ONE else ZERO)
         }).toMap
-
         assert(left.substitute(valuation) === right.substitute(valuation), valuation)
       }
     }

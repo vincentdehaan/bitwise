@@ -9,18 +9,21 @@ trait Bit extends Any{
   def <-> (that: Bit): Bit = BitEq(this, that)
   def unary_! : Bit = BitNot(this)
   def substitute(vars: Map[BitVar, Bit]): Bit
+  def isCnf: Boolean = false // Returns true only if this is a cnf that associates to the right in both AND and OR
+  private def isCnfClause: Boolean = false
   private[bitwise] def onlyAndOrNot: Bit
   private[bitwise] def pushNotInside: Bit
   private[bitwise] def pushOrInside: Bit
   private[bitwise] def associateRight: Bit
+
 
   // TODO: clean up repetitions in or and and clauses
   // TODO: toCNF
 }
 
 // TODO: is this still a value type now that it's a case class?
-case class BitValue(value: Int) extends AnyVal with Bit with Atomic {
-  override def toString: String = value.toString
+case class BitValue(value: Boolean) extends AnyVal with Bit with Atomic {
+  override def toString: String = if(value) "1" else "0"
   def substitute(vars: Map[BitVar, Bit]): Bit = this
 
 }
@@ -45,9 +48,9 @@ trait Atomic extends Any with Bit {
 
 object BitAnd {
   def apply(left: Bit, right: Bit): Bit = left match {
-    case vleft: BitValue => if(vleft.value == 1) right else ZERO
+    case vleft: BitValue => if(vleft.value) right else ZERO
     case fleft: BitFormula => right match {
-      case vright: BitValue => if(vright.value == 1) fleft else ZERO
+      case vright: BitValue => if(vright.value) fleft else ZERO
       case fright: BitFormula => if(fleft == fright) fleft else new BitAnd(fleft, fright)
     }
   }
@@ -76,9 +79,9 @@ case class BitAnd (left: Bit, right: Bit) extends BitFormula with BinaryOperator
 
 object BitOr {
   def apply(left: Bit, right: Bit): Bit = left match {
-    case vleft: BitValue => if(vleft.value == 1) ONE else right
+    case vleft: BitValue => if(vleft == ONE) ONE else right
     case fleft: BitFormula => right match {
-      case vright: BitValue => if(vright.value == 1) ONE else fleft
+      case vright: BitValue => if(vright == ONE) ONE else fleft
       case fright: BitFormula => if(fleft == fright) fleft else new BitOr(fleft, fright)
     }
   }
@@ -119,6 +122,8 @@ case class BitOr (left: Bit, right: Bit) extends BitFormula with BinaryOperator 
 object BitXor {
   def apply(left: Bit, right: Bit): Bit = (left, right) match {
     case (vleft: BitValue, vright: BitValue) => if(vleft.value == vright.value) ZERO else ONE
+    case (vleft: BitValue, fright: Bit) => if(vleft == ONE) !fright else fright
+    case (fleft: Bit, vright: BitValue) => if(vright == ONE) !fleft else fleft
     case _ => if(left == right) ZERO else new BitXor(left, right)
   }
 }
@@ -141,18 +146,20 @@ case class BitXor (left: Bit, right: Bit) extends BitFormula with BinaryOperator
 object BitEq {
   def apply(left: Bit, right: Bit): Bit = (left, right) match {
     case (vleft: BitValue, vright: BitValue) => if(vleft.value == vright.value) ONE else ZERO
+    case (vleft: BitValue, fright: Bit) => if (vleft == ONE) fright else !fright
+    case (fleft: Bit, vright: BitValue) => if (vright == ONE) fleft else !fleft
     case _ => if(left == right) ONE else new BitEq(left, right)
   }
 }
 
 case class BitEq (left: Bit, right: Bit) extends BitFormula with BinaryOperator {
-  override def toString: String = s"($left==$right)"
+  override def toString: String = s"($left<->$right)"
   def substitute(vars: Map[BitVar, Bit]): Bit = left.substitute(vars) <-> right.substitute(vars)
   def op: (Bit, Bit) => Bit = _ <-> _
   override private[bitwise] def onlyAndOrNot: Bit = {
     val leftAndOrNot = left.onlyAndOrNot
     val rightAndOrNot = right.onlyAndOrNot
-    (leftAndOrNot & rightAndOrNot) | (!leftAndOrNot & !rightAndOrNot)
+    (!leftAndOrNot | rightAndOrNot) & (leftAndOrNot | !rightAndOrNot)
   }
   override private[bitwise] def pushNotInside: Bit = throw new Exception("pushNotInside should only be called after onlyAndOrNot")
   //override private[bitwise] def pushOrInside: Bit = throw new Exception("pushOrInside should only be called after onlyAndOrNot and pushNotInside")
@@ -161,7 +168,7 @@ case class BitEq (left: Bit, right: Bit) extends BitFormula with BinaryOperator 
 
 object BitNot {
   def apply(bit: Bit): Bit = bit match {
-    case BitValue(v) => if(v == 1) ZERO else ONE
+    case BitValue(v) => if(v) ZERO else ONE
     case BitNot(n) => n
     case f: BitFormula => new BitNot(f)
   }

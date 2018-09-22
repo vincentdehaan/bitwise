@@ -18,7 +18,7 @@ class BitProperties extends FlatSpec with Matchers with GeneratorDrivenPropertyC
   val x8 = BitVar("x8")
 
   implicit override val generatorDrivenConfig =
-    PropertyCheckConfiguration(minSuccessful = 5)
+    PropertyCheckConfiguration(minSuccessful = 1)
 
   implicit def arbitraryBit: Arbitrary[Bit] = Arbitrary {
     val primitiveGen = Gen.oneOf(ZERO, ONE)
@@ -60,7 +60,7 @@ class BitProperties extends FlatSpec with Matchers with GeneratorDrivenPropertyC
         val andOrNot = f.onlyAndOrNot
 
         // Assert
-        assertEquivalence(f, andOrNot, List(x1, x2, x3, x4, x5, x6, x7, x8))
+        assertEquivalence(f, andOrNot)
         assertAndOrNot(andOrNot)
       }
     }
@@ -76,7 +76,7 @@ class BitProperties extends FlatSpec with Matchers with GeneratorDrivenPropertyC
         val notInside = andOrNot.pushNotInside
 
         // Assert
-        assertEquivalence(andOrNot, notInside, List(x1, x2, x3, x4, x5, x6, x7, x8))
+        assertEquivalence(andOrNot, notInside)
         assertNotInside(notInside)
       }
     }
@@ -86,14 +86,32 @@ class BitProperties extends FlatSpec with Matchers with GeneratorDrivenPropertyC
     // Arrange
     forAll {
       f: Bit => {
-        val notInside = f.onlyAndOrNot.pushNotInside
-
+        /*val notInside = f.onlyAndOrNot.pushNotInside
+        println(f)
+        println(f.onlyAndOrNot)
+println(notInside)
+        println()
         // Act
         val orInside = notInside.pushOrInside
+*/
+        val f = (!((x8|((!x5)<->(x2<->x4)))<->(((((!x8)^((!x1)&(!x3)))<->((!x7)&x6))|x6)<->((x3&((!x1)|(x6&(!x1))))&((!x8)^x8)))))
+        val t0 = System.nanoTime()
+        val andOrNot = f.onlyAndOrNot
+        val t1 = System.nanoTime()
+        val notInside = andOrNot.pushNotInside
+        val t2 = System.nanoTime()
+        val orInside = notInside.pushOrInside
+        val t3 = System.nanoTime()
+        println(s"onlyAndOrNot: ${(t1-t0) / 1000}")
+        println(s"pushNotInside: ${(t2-t1) / 1000}")
+        println(s"pushOrInside: ${(t3-t2) / 1000}")
+
 
         // Assert
-        assertEquivalence(notInside, orInside, List(x1, x2, x3, x4, x5, x6, x7, x8))
+        assertEquivalence(notInside, orInside)
+        println(456)
         assertOrInside(orInside)
+        println(123)
       }
     }
   }
