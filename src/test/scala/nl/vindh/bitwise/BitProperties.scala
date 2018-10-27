@@ -86,32 +86,15 @@ class BitProperties extends FlatSpec with Matchers with GeneratorDrivenPropertyC
     // Arrange
     forAll {
       f: Bit => {
-        /*val notInside = f.onlyAndOrNot.pushNotInside
-        println(f)
-        println(f.onlyAndOrNot)
-println(notInside)
-        println()
+        val andOrNot = f.onlyAndOrNot
+        val notInside = andOrNot.pushNotInside
+
         // Act
         val orInside = notInside.pushOrInside
-*/
-        val f = (!((x8|((!x5)<->(x2<->x4)))<->(((((!x8)^((!x1)&(!x3)))<->((!x7)&x6))|x6)<->((x3&((!x1)|(x6&(!x1))))&((!x8)^x8)))))
-        val t0 = System.nanoTime()
-        val andOrNot = f.onlyAndOrNot
-        val t1 = System.nanoTime()
-        val notInside = andOrNot.pushNotInside
-        val t2 = System.nanoTime()
-        val orInside = notInside.pushOrInside
-        val t3 = System.nanoTime()
-        println(s"onlyAndOrNot: ${(t1-t0) / 1000}")
-        println(s"pushNotInside: ${(t2-t1) / 1000}")
-        println(s"pushOrInside: ${(t3-t2) / 1000}")
-
 
         // Assert
         assertEquivalence(notInside, orInside)
-        println(456)
         assertOrInside(orInside)
-        println(123)
       }
     }
   }

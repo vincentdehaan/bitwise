@@ -9,7 +9,8 @@ trait BitwiseAssertions extends Matchers {
   def assertEquivalence(left: Bit, right: Bit): Unit = {
     def getVariables(bit: Bit): Set[BitVar] = bit match {
       case bvar: BitVar => Set(bvar)
-      case bin: BinaryOperator => getVariables(bin.left) ++ getVariables(bin.right)
+      case bin: BinaryOperator => getVariables(bin.left) ++ getVariables(bin.right) // TODO: remove
+      case ass: AssociativeOperator => ass.bits.flatMap(bit => getVariables(bit)).toSet
       case BitNot(not) => getVariables(not)
       case _ => Set()
     }
@@ -36,10 +37,11 @@ trait BitwiseAssertions extends Matchers {
   def assertTree(bit: Bit)(test: Bit => Boolean): Unit = {
     assert(test(bit), bit)
     bit match {
-      case bin: BinaryOperator => {
+      case bin: BinaryOperator => { // TODO: remove
         assertTree(bin.left)(test)
         assertTree(bin.right)(test)
       }
+      case ass: AssociativeOperator => ass.bits.foreach(assertTree(_)(test))
       case BitNot(not) => assertTree(not)(test)
       case BitVar(_) | BitValue(_) =>
       case _ => throw new Exception(s"Type not supported: ${bit.getClass.toString}")
@@ -51,7 +53,7 @@ trait BitwiseAssertions extends Matchers {
    */
   def assertAndOrNot(bit: Bit): Unit = assertTree(bit){
     _ match {
-      case BitAnd(_, _) | BitOr(_, _) | BitNot(_) | BitVar(_) | BitValue(_) => true
+      case BitAnd(_ :: _) | BitOr(_ :: _) | BitNot(_) | BitVar(_) | BitValue(_) => true
       case _ => false
     }
   }
@@ -72,19 +74,12 @@ trait BitwiseAssertions extends Matchers {
    */
   def assertOrInside(bit: Bit): Unit = assertTree(bit){
     _ match {
-      case BitOr(_: BitAnd, _) => false
-      case BitOr(_, _: BitAnd) => false
-      case _ => true
-    }
-  }
-
-  /*
-   * Asserts that no & has another & as left argument, and no | has another | as left argument
-   */
-  def assertAssociateRight(bit: Bit): Unit = assertTree(bit){
-    _ match {
-      case BitOr(left: BitOr, _) => false
-      case BitAnd(left: BitAnd, _) => false
+      case or: BitOr => or.bits.forall{
+        _ match {
+          case _: BitAnd => false
+          case _ => true
+        }
+      }
       case _ => true
     }
   }

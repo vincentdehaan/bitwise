@@ -3,9 +3,9 @@ package nl.vindh.bitwise
 import types._
 
 trait Bit extends Any{
-  def & (that: Bit): Bit = BitAnd(this, that)
-  def | (that: Bit): Bit = BitOr(this, that)
-  def ^ (that: Bit): Bit = BitXor(this, that)
+  def & (that: Bit): Bit = BitAnd(List(this, that))
+  def | (that: Bit): Bit = BitOr(List(this, that))
+  def ^ (that: Bit): Bit = BitXor(List(this, that))
   def <-> (that: Bit): Bit = BitEq(this, that)
   def unary_! : Bit = BitNot(this)
   def substitute(vars: Map[BitVar, Bit]): Bit
@@ -14,8 +14,6 @@ trait Bit extends Any{
   private[bitwise] def onlyAndOrNot: Bit
   private[bitwise] def pushNotInside: Bit
   private[bitwise] def pushOrInside: Bit
-  private[bitwise] def associateRight: Bit
-
 
   // TODO: clean up repetitions in or and and clauses
   // TODO: toCNF
@@ -36,7 +34,7 @@ trait BinaryOperator {
   private[bitwise] def op: (Bit, Bit) => Bit
   private[bitwise] def onlyAndOrNot: Bit = op(left.onlyAndOrNot, right.onlyAndOrNot)
   private[bitwise] def pushNotInside: Bit = op(left.pushNotInside, right.pushNotInside)
-  private[bitwise] lazy val pushOrInside: Bit = op(left.pushOrInside, right.pushOrInside)
+  private[bitwise] def pushOrInside: Bit = op(left.pushOrInside, right.pushOrInside)
 }
 
 trait Atomic extends Any with Bit {
@@ -46,101 +44,111 @@ trait Atomic extends Any with Bit {
   private[bitwise] def associateRight: Bit = this
 }
 
-object BitAnd {
-  def apply(left: Bit, right: Bit): Bit = left match {
-    case vleft: BitValue => if(vleft.value) right else ZERO
-    case fleft: BitFormula => right match {
-      case vright: BitValue => if(vright.value) fleft else ZERO
-      case fright: BitFormula => if(fleft == fright) fleft else new BitAnd(fleft, fright)
-    }
-  }
-  private[bitwise] def forceBitAnd(left: Bit, right: Bit): BitAnd = {
-    val res = left & right
-    res match {
-      case and: BitAnd => and
-      case _ => throw new Exception(s"Expression simplifies to other type: ${res.getClass}")
-    }
-  }
+trait AssociativeOperator extends Bit {
+  val bits: Iterable[Bit]
+  override def toString: String = bits.mkString("(", opSymbol, ")")
+  private[bitwise] val opSymbol: String
+  private[bitwise] def op: (Bit, Bit) => Bit
+  private[bitwise] def onlyAndOrNot: Bit = bits.tail.fold(bits.head)((l, r) => op(l.onlyAndOrNot, r.onlyAndOrNot))
+  private[bitwise] def pushNotInside: Bit = bits.tail.fold(bits.head)((l, r) => op(l.pushNotInside, r.pushNotInside))
+  private[bitwise] def pushOrInside: Bit = bits.tail.fold(bits.head)((l, r) => op(l.pushOrInside, r.pushOrInside))
 }
 
-case class BitAnd (left: Bit, right: Bit) extends BitFormula with BinaryOperator {
-  override def toString: String = s"($left&$right)"
-  def substitute(vars: Map[BitVar, Bit]): Bit = left.substitute(vars) & right.substitute(vars)
+object BitAnd {
+  def apply(bits: List[Bit]): Bit = // TODO: optimize this in one traversal
+    if(bits.exists(_ == ZERO)) ZERO
+    else if(bits.forall(_ == ONE)) ONE
+    else {
+      val cleanBits = bits.flatMap(
+        bit => bit match {
+          case and: BitAnd => and.bits
+          case ONE => Nil // We already know that not ALL elements are ONE
+          case bit => List(bit)
+        }
+      ).distinct
+      if(cleanBits.size == 1) cleanBits.head
+      else new BitAnd(cleanBits)
+    }
+
+  // TODO: solve this with the type system
+  private[bitwise] def cleanApply(bits: List[Bit]): Bit = new BitAnd(bits)
+}
+
+case class BitAnd(bits: List[Bit]) extends BitFormula with AssociativeOperator {
+  private[bitwise] val opSymbol = "&"
+  def substitute(vars: Map[BitVar, Bit]): Bit = BitAnd(bits.map(_.substitute(vars)))
   def op: (Bit, Bit) => Bit = _ & _
-  private[bitwise] def associateRight: BitAnd = this match {
-    case BitAnd(left: BitAnd, right: BitAnd) =>
-      val aLeft = left.associateRight
-      val aRight = right.associateRight // now aLeft.left and aRight.left are not BitAnd anymore
-      BitAnd.forceBitAnd(aLeft.left, aRight.left & (aLeft.right & aRight.right).associateRight)
-    case BitAnd(left: BitAnd, right: Bit) => BitAnd.forceBitAnd(right, left.associateRight)
-    case _ => this
-  }
 }
 
 object BitOr {
-  def apply(left: Bit, right: Bit): Bit = left match {
-    case vleft: BitValue => if(vleft == ONE) ONE else right
-    case fleft: BitFormula => right match {
-      case vright: BitValue => if(vright == ONE) ONE else fleft
-      case fright: BitFormula => if(fleft == fright) fleft else new BitOr(fleft, fright)
+  def apply(bits: List[Bit]): Bit =
+    if(bits.exists(_ == ONE)) ONE
+    else if(bits.forall(_ == ZERO)) ZERO
+    else {
+      val cleanBits = bits.flatMap(
+        bit => bit match {
+          case or: BitOr => or.bits
+          case ZERO => Nil
+          case bit => List(bit)
+        }
+      ).distinct
+      if(cleanBits.size == 1) cleanBits.head
+      else new BitOr(cleanBits)
     }
-  }
-  private[bitwise] def forceBitOr(left: Bit, right: Bit): BitOr = {
-    val res = left | right
-    res match {
-      case or: BitOr => or
-      case _ => throw new Exception(s"Expression simplifies to other type: ${res.getClass}")
-    }
-  }
+
+  // TODO: solve this with the type system
+  private[bitwise] def cleanApply(bits: List[Bit]): Bit = new BitOr(bits)
 }
 
-case class BitOr (left: Bit, right: Bit) extends BitFormula with BinaryOperator {
-  override def toString: String = s"($left|$right)"
-  def substitute(vars: Map[BitVar, Bit]): Bit = left.substitute(vars) | right.substitute(vars)
+case class BitOr (bits: List[Bit]) extends BitFormula with AssociativeOperator {
+  private[bitwise] val opSymbol = "|"
+  def substitute(vars: Map[BitVar, Bit]): Bit = BitOr(bits.map(_.substitute(vars)))
   def op: (Bit, Bit) => Bit = _ | _
   override private[bitwise] lazy val pushOrInside: Bit = {
-    val leftOrInside = left.pushOrInside
-    val rightOrInside = right.pushOrInside
-    leftOrInside match {
-      case BitAnd(andLeft, andRight) => (andLeft | rightOrInside).pushOrInside & (andRight | rightOrInside).pushOrInside
-      case _ => rightOrInside match {
-        case BitAnd(andLeft, andRight) => (andLeft | leftOrInside).pushOrInside & (andRight | leftOrInside).pushOrInside
-        case _ => leftOrInside | rightOrInside
+    val headOrInside = bits.head.pushOrInside
+    val tailOrInside = BitOr(bits.tail).pushOrInside
+    headOrInside match {
+      case BitAnd(hd :: tl) => (hd | tailOrInside).pushOrInside & (BitAnd(tl) | tailOrInside).pushOrInside
+      case _ => tailOrInside match {
+        case BitAnd(hd :: tl) => (headOrInside | hd).pushOrInside & (headOrInside | BitAnd(tl)).pushOrInside
+        case _ => headOrInside | tailOrInside
       }
     }
-  }
-  private[bitwise] def associateRight: BitOr = this match {
-    case BitOr(left:BitOr, right: BitOr) =>
-      val aLeft = left.associateRight
-      val aRight = right.associateRight
-      BitOr.forceBitOr(aLeft.left, aRight.left | (aLeft.right | aRight.right).associateRight)
-    case BitOr(left: BitOr, right: Bit) => BitOr.forceBitOr(right, left.associateRight)
-    case _ => this
   }
 }
 
 object BitXor {
-  def apply(left: Bit, right: Bit): Bit = (left, right) match {
-    case (vleft: BitValue, vright: BitValue) => if(vleft.value == vright.value) ZERO else ONE
-    case (vleft: BitValue, fright: Bit) => if(vleft == ONE) !fright else fright
-    case (fleft: Bit, vright: BitValue) => if(vright == ONE) !fleft else fleft
-    case _ => if(left == right) ZERO else new BitXor(left, right)
+  def apply(bits: List[Bit]): Bit = {
+    val countOnes = bits.count(_ == ONE)
+    val cleanBits = bits.flatMap(
+      _ match {
+        case xor: BitXor => xor.bits
+        case _: BitValue => Nil
+        case bit => List(bit)
+      }
+    )
+    val cleanBitsWithOne = if(countOnes % 2 == 1) ONE :: cleanBits else cleanBits
+    cleanBitsWithOne match {
+      case Nil => ZERO
+      case hd :: Nil => hd
+      case ONE :: x :: Nil => BitNot(x)
+      case lst => new BitXor(lst)
+    }
   }
 }
 
-case class BitXor (left: Bit, right: Bit) extends BitFormula with BinaryOperator {
-  override def toString: String = s"($left^$right)"
-  def substitute(vars: Map[BitVar, Bit]): Bit = left.substitute(vars) ^ right.substitute(vars)
+case class BitXor (bits: List[Bit]) extends BitFormula with AssociativeOperator {
+  private[bitwise] val opSymbol = "^"
+  def substitute(vars: Map[BitVar, Bit]): Bit = BitXor(bits.map(_.substitute(vars)))
   def op: (Bit, Bit) => Bit = _ ^ _
   override private[bitwise] def onlyAndOrNot: Bit = {
-    val leftAndOrNot = left.onlyAndOrNot
-    val rightAndOrNot = right.onlyAndOrNot
-    (leftAndOrNot & !rightAndOrNot) | (!leftAndOrNot & rightAndOrNot)
+    val headAndOrNot = bits.head.onlyAndOrNot
+    val tailAndOrNot = BitXor(bits.tail).onlyAndOrNot
+    (headAndOrNot & !tailAndOrNot) | (!headAndOrNot & tailAndOrNot)
   }
   override private[bitwise] def pushNotInside: Bit = throw new Exception("pushNotInside should only be called after onlyAndOrNot")
-  // TODO: override lazy val
-  //override private[bitwise] def pushOrInside: Bit = throw new Exception("pushOrInside should only be called after onlyAndOrNot and pushNotInside")
-  private[bitwise] def associateRight: Bit = ???
+  override private[bitwise] def pushOrInside: Bit = throw new Exception("pushOrInside should only be called after onlyAndOrNot and pushNotInside")
+
 }
 
 object BitEq {
@@ -161,9 +169,6 @@ case class BitEq (left: Bit, right: Bit) extends BitFormula with BinaryOperator 
     val rightAndOrNot = right.onlyAndOrNot
     (!leftAndOrNot | rightAndOrNot) & (leftAndOrNot | !rightAndOrNot)
   }
-  override private[bitwise] def pushNotInside: Bit = throw new Exception("pushNotInside should only be called after onlyAndOrNot")
-  //override private[bitwise] def pushOrInside: Bit = throw new Exception("pushOrInside should only be called after onlyAndOrNot and pushNotInside")
-  private[bitwise] def associateRight: Bit = ???
 }
 
 object BitNot {
@@ -179,13 +184,12 @@ case class BitNot (bit: Bit) extends BitFormula {
   def substitute(vars: Map[BitVar, Bit]): Bit = !bit.substitute(vars)
   private[bitwise] def onlyAndOrNot: Bit = !bit.onlyAndOrNot
   private[bitwise] def pushNotInside: Bit = bit match { // Apply De Morgan's laws
-    case BitAnd(left, right) => (!left | !right).pushNotInside
-    case BitOr(left, right) => (!left & !right).pushNotInside
+    case BitAnd(bits) => BitOr(bits.map(! _)).pushNotInside
+    case BitOr(bits) => BitAnd(bits.map(! _)).pushNotInside
     case BitVar(_) => this
     case _ => throw new Exception(s"pushNotInside should only be called after onlyAndOrNot. Type found: ${bit.getClass}")
   }
   private[bitwise] def pushOrInside: Bit = !bit.pushOrInside
-  private[bitwise] def associateRight: Bit = !bit.associateRight
 }
 
 object BitVar {
