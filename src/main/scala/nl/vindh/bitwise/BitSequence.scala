@@ -3,7 +3,15 @@ package nl.vindh.bitwise
 class BitSequence (val bits: Seq[Bit]) extends scala.collection.immutable.LinearSeq[Bit]{//IndexedSeq[Bit]{ // TODO: why does toString give stackoverflow if I change the base class to LinearSeq?
   def apply(idx: Int): Bit = bits(idx)
   def length: Int = bits.length
-  override def toString: String = bits.mkString("(", ",", ")")
+  override def toString: String = bits.reverse.mkString("(", ",", ")")
+  def toString(width: Int): String = bits.reverse.map{
+    bit => {
+      val s = bit.toString
+      if(s.size < width) s + " " * (width - s.size)
+      else if(s.size > width) s.substring(0, width)
+      else s
+    }
+  }.mkString(" ")
 
   def toInt: Int = bits.zipWithIndex.map{
     _ match {
