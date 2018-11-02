@@ -1,8 +1,6 @@
 package nl.vindh.bitwise
 
-import org.scalactic.Prettifier
 import org.scalatest._
-import types._
 
 class BitSequenceSpec extends FlatSpec with Matchers {
   // Arrange

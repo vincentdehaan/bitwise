@@ -2,8 +2,6 @@ package nl.vindh.bitwise
 
 import org.scalatest._
 
-import nl.vindh.bitwise.types.{ONE, ZERO}
-
 trait BitwiseAssertions extends Matchers {
   // TODO: enhance assert error messages
   def getVariables(bit: Bit): Set[BitVar] = bit match {

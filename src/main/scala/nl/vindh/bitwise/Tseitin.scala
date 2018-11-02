@@ -6,7 +6,10 @@ object Tseitin {
     BitAnd(varOption :: clauses.map(clause => clause.toCnf))
   }
 
+  def transform(seq: BitSequence): BitSequence =
+    new BitSequence(seq.map(transform(_)))
 
+  // TODO: start over for every transformation
   val varPrefix = "tstn"
   var varCounter = 0
   def getNewVar: BitVar = {
@@ -14,7 +17,6 @@ object Tseitin {
     BitVar(varPrefix + varCounter)
   }
 
-  // TODO: I think I can get rid of the Option
   def getClauses(f: Bit): (List[TseitinClause], Bit) = {
     def handleAssociativeOperator(operands: List[Bit], apply: List[Bit] => Bit): (List[TseitinClause], Bit) = {
       val (clauseListList, varOptionList) = operands.map(f => getClauses(f)).unzip

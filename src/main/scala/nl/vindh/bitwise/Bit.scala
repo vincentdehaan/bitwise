@@ -1,7 +1,5 @@
 package nl.vindh.bitwise
 
-import types._
-
 trait Bit extends Any{
   def & (that: Bit): Bit = BitAnd(List(this, that))
   def | (that: Bit): Bit = BitOr(List(this, that))

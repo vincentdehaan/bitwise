@@ -1,16 +1,8 @@
 package nl.vindh.bitwise
 
 import org.scalatest._
-import types._
 
-class BitSpec extends FlatSpec with Matchers with BitwiseAssertions {
-  // Arrange
-  val x1 = BitVar("x1")
-  val x2 = BitVar("x2")
-  val x3 = BitVar("x3")
-  val x4 = BitVar("x4")
-  val x5 = BitVar("x5")
-
+class BitSpec extends FlatSpec with Matchers with BitwiseAssertions with BitVarXs {
   "Bit" should "implement &" in {
     // Arrange
 
@@ -197,8 +189,6 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions {
     val s = f.substitute(m)
 
     // Assert
-    println(s.getClass.toString)
-    println(x2.getClass.toString)
     assert(s === x2)
   }
 

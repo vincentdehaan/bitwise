@@ -1,8 +1,6 @@
 package nl.vindh.bitwise
 
-import types._
-
-class BitSequence private(val bits: Seq[Bit]) extends scala.collection.immutable.LinearSeq[Bit]{//IndexedSeq[Bit]{ // TODO: why does toString give stackoverflow if I change the base class to LinearSeq?
+class BitSequence (val bits: Seq[Bit]) extends scala.collection.immutable.LinearSeq[Bit]{//IndexedSeq[Bit]{ // TODO: why does toString give stackoverflow if I change the base class to LinearSeq?
   def apply(idx: Int): Bit = bits(idx)
   def length: Int = bits.length
   override def toString: String = bits.mkString("(", ",", ")")

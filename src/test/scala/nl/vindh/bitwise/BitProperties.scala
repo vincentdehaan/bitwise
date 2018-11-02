@@ -1,22 +1,10 @@
 package nl.vindh.bitwise
 
-// TODO: cleanup
 import org.scalatest._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalacheck._
-import types._
 
-class BitProperties extends FlatSpec with Matchers with GeneratorDrivenPropertyChecks with BitwiseAssertions {
-  // TODO: create seperate trait/file
-  val x1 = BitVar("x1")
-  val x2 = BitVar("x2")
-  val x3 = BitVar("x3")
-  val x4 = BitVar("x4")
-  val x5 = BitVar("x5")
-  val x6 = BitVar("x6")
-  val x7 = BitVar("x7")
-  val x8 = BitVar("x8")
-
+class BitProperties extends FlatSpec with Matchers with GeneratorDrivenPropertyChecks with BitwiseAssertions with BitVarXs {
   implicit override val generatorDrivenConfig =
     PropertyCheckConfiguration(minSuccessful = 1)
 

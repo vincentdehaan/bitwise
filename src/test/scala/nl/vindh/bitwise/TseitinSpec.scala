@@ -1,16 +1,8 @@
 package nl.vindh.bitwise
 
 import org.scalatest._
-import types._
 
-class TseitinSpec extends FlatSpec with Matchers with BitwiseAssertions {
-  // Arrange
-  val x1 = BitVar("x1")
-  val x2 = BitVar("x2")
-  val x3 = BitVar("x3")
-  val x4 = BitVar("x4")
-  val x5 = BitVar("x5")
-
+class TseitinSpec extends FlatSpec with Matchers with BitwiseAssertions with BitVarXs {
   "Tseitin.transform" should "generate a CNF that is equisatisfiable" in {
     // Arrange
     val f1 = ((x1 | x2) & x3) <-> !x4
@@ -37,6 +29,9 @@ class TseitinSpec extends FlatSpec with Matchers with BitwiseAssertions {
     assertCnf(t4)
     assertTseitinEquivalence(f5, t5)
     assertCnf(t5)
+  }
 
+  "Tseitin.transform" should "be able to handle BitSequences as well" in {
+    // TODO
   }
 }
