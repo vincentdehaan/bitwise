@@ -10,6 +10,9 @@ class TseitinSpec extends FlatSpec with Matchers with BitwiseAssertions with Bit
     val f3 = x1
     val f4 = x1 & x2
     val f5 = !x1 & x2
+    val f6 = (x3 ^ x5 ^ x7 ^ ((x2 ^ x4) & x6))
+    val f7 = x7 ^ ((x2 ^ x4) & x6)
+    val f8 = x5 ^ x7 ^ ((x2 ^ x4) & x6)
 
     // Act
     val t1 = Tseitin.transform(f1)
@@ -17,6 +20,9 @@ class TseitinSpec extends FlatSpec with Matchers with BitwiseAssertions with Bit
     val t3 = Tseitin.transform(f3)
     val t4 = Tseitin.transform(f4)
     val t5 = Tseitin.transform(f5)
+    val t6 = Tseitin.transform(f6)
+    val t7 = Tseitin.transform(f7)
+    val t8 = Tseitin.transform(f8)
 
     // Assert
     assertTseitinEquivalence(f1, t1)
@@ -29,6 +35,12 @@ class TseitinSpec extends FlatSpec with Matchers with BitwiseAssertions with Bit
     assertCnf(t4)
     assertTseitinEquivalence(f5, t5)
     assertCnf(t5)
+    assertTseitinEquivalence(f6, t6)
+    assertCnf(t6)
+    assertTseitinEquivalence(f7, t7)
+    assertCnf(t7)
+    assertTseitinEquivalence(f8, t8)
+    assertCnf(t8)
   }
 
   "Tseitin.transform" should "be able to handle BitSequences as well" in {

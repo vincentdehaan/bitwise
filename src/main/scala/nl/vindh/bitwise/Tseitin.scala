@@ -7,7 +7,8 @@ object Tseitin {
   }
 
   def transform(seq: BitSequence): BitSequence =
-    new BitSequence(seq.map(transform(_)))
+    //new BitSequence(seq.map(transform(_)))
+    seq.map(transform(_))
 
   // TODO: start over for every transformation
   val varPrefix = "tstn"
@@ -19,17 +20,19 @@ object Tseitin {
 
   def getClauses(f: Bit): (List[TseitinClause], Bit) = {
     def handleAssociativeOperator(operands: List[Bit], apply: List[Bit] => Bit): (List[TseitinClause], Bit) = {
-      val (clauseListList, varOptionList) = operands.map(f => getClauses(f)).unzip
+      operands match {
+        case hd :: elt :: Nil => handleAssociativeOperatorWith2Operands(operands, apply)
+        case hd :: tl => handleAssociativeOperatorWith2Operands(List(hd, apply(tl)), apply)
+      }
+    }
+
+    def handleAssociativeOperatorWith2Operands(operands: List[Bit], apply: List[Bit] => Bit): (List[TseitinClause], Bit) = {
+      val (clauseListList, varList) = operands.map(f => getClauses(f)).unzip
       val newVar = getNewVar
       (
         TseitinClause(
           newVar,
-          apply(
-            varOptionList.zip(operands)
-              .map {
-                case (opt, bit) => opt
-              }
-          )
+          apply(varList)
         ) :: clauseListList.flatten,
         newVar
       )
@@ -39,10 +42,10 @@ object Tseitin {
       case v: BitVar => (Nil, v)
       case v: BitValue => (Nil, v)
       case BitNot(n) => {
-        val (clauses, varOption) = getClauses(n)
+        val (clauses, varr) = getClauses(n)
         val newVar = getNewVar
         (
-          TseitinClause(newVar, BitNot(varOption)) :: clauses,
+          TseitinClause(newVar, BitNot(varr)) :: clauses,
           newVar
         )
       }
@@ -50,18 +53,17 @@ object Tseitin {
       case BitOr(lst) => handleAssociativeOperator(lst, BitOr.apply)
       case BitXor(lst) => handleAssociativeOperator(lst, BitXor.apply)
       case BitEq(left, right) => {
-        val (clauseListLeft, varOptionLeft) = getClauses(left)
-        val (clauseListRight, varOptionRight) = getClauses(right)
+        val (clauseListLeft, varLeft) = getClauses(left)
+        val (clauseListRight, varRight) = getClauses(right)
         val newVar = getNewVar
         (
           TseitinClause(
             newVar,
-            BitEq(varOptionLeft, varOptionRight)
+            BitEq(varLeft, varRight)
           ) :: clauseListLeft ::: clauseListRight,
           newVar
         )
       }
-
     }
   }
 }

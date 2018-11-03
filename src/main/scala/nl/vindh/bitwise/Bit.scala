@@ -39,7 +39,6 @@ trait Atomic extends Any with Bit {
   private[bitwise] def onlyAndOrNot: Bit = this
   private[bitwise] def pushNotInside: Bit = this
   private[bitwise] def pushOrInside: Bit = this
-  private[bitwise] def associateRight: Bit = this
 }
 
 trait AssociativeOperator extends Bit {
@@ -47,19 +46,19 @@ trait AssociativeOperator extends Bit {
   override def toString: String = bits.mkString("(", opSymbol, ")")
   private[bitwise] val opSymbol: String
   private[bitwise] def op: (Bit, Bit) => Bit
-  private[bitwise] def onlyAndOrNot: Bit = bits.tail.fold(bits.head)((l, r) => op(l.onlyAndOrNot, r.onlyAndOrNot))
-  private[bitwise] def pushNotInside: Bit = bits.tail.fold(bits.head)((l, r) => op(l.pushNotInside, r.pushNotInside))
-  private[bitwise] def pushOrInside: Bit = bits.tail.fold(bits.head)((l, r) => op(l.pushOrInside, r.pushOrInside))
+  private[bitwise] lazy val onlyAndOrNot: Bit = bits.tail.fold(bits.head)((l, r) => op(l.onlyAndOrNot, r.onlyAndOrNot))
+  private[bitwise] lazy val pushNotInside: Bit = bits.tail.fold(bits.head)((l, r) => op(l.pushNotInside, r.pushNotInside))
+  private[bitwise] lazy val pushOrInside: Bit = bits.tail.fold(bits.head)((l, r) => op(l.pushOrInside, r.pushOrInside))
 }
 
 object BitAnd {
-  def apply(bits: List[Bit]): Bit = // TODO: optimize this in one traversal
+  def apply[T <: Bit](bits: List[T]): Bit = // TODO: optimize this in one traversal
     if(bits.exists(_ == ZERO)) ZERO
     else if(bits.forall(_ == ONE)) ONE
     else {
       val cleanBits = bits.flatMap(
         bit => bit match {
-          case and: BitAnd => and.bits
+          case and: BitAnd[_] => and.bits // TODO: is pattern matching on BitAnd[T] impossible due to type erasure?
           case ONE => Nil // We already know that not ALL elements are ONE
           case bit => List(bit)
         }
@@ -72,20 +71,20 @@ object BitAnd {
   private[bitwise] def cleanApply(bits: List[Bit]): Bit = new BitAnd(bits)
 }
 
-case class BitAnd(bits: List[Bit]) extends BitFormula with AssociativeOperator {
+case class BitAnd[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeOperator {
   private[bitwise] val opSymbol = "&"
   def substitute(vars: Map[BitVar, Bit]): Bit = BitAnd(bits.map(_.substitute(vars)))
   def op: (Bit, Bit) => Bit = _ & _
 }
 
 object BitOr {
-  def apply(bits: List[Bit]): Bit =
+  def apply[T <: Bit] (bits: List[T]): Bit =
     if(bits.exists(_ == ONE)) ONE
     else if(bits.forall(_ == ZERO)) ZERO
     else {
       val cleanBits = bits.flatMap(
         bit => bit match {
-          case or: BitOr => or.bits
+          case or: BitOr[_] => or.bits
           case ZERO => Nil
           case bit => List(bit)
         }
@@ -98,7 +97,7 @@ object BitOr {
   private[bitwise] def cleanApply(bits: List[Bit]): Bit = new BitOr(bits)
 }
 
-case class BitOr (bits: List[Bit]) extends BitFormula with AssociativeOperator {
+case class BitOr[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeOperator {
   private[bitwise] val opSymbol = "|"
   def substitute(vars: Map[BitVar, Bit]): Bit = BitOr(bits.map(_.substitute(vars)))
   def op: (Bit, Bit) => Bit = _ | _
@@ -116,11 +115,11 @@ case class BitOr (bits: List[Bit]) extends BitFormula with AssociativeOperator {
 }
 
 object BitXor {
-  def apply(bits: List[Bit]): Bit = {
+  def apply[T <: Bit] (bits: List[T]): Bit = {
     val countOnes = bits.count(_ == ONE)
     val cleanBits = bits.flatMap(
       _ match {
-        case xor: BitXor => xor.bits
+        case xor: BitXor[_] => xor.bits
         case _: BitValue => Nil
         case bit => List(bit)
       }
@@ -135,17 +134,17 @@ object BitXor {
   }
 }
 
-case class BitXor (bits: List[Bit]) extends BitFormula with AssociativeOperator {
+case class BitXor[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeOperator {
   private[bitwise] val opSymbol = "^"
   def substitute(vars: Map[BitVar, Bit]): Bit = BitXor(bits.map(_.substitute(vars)))
   def op: (Bit, Bit) => Bit = _ ^ _
-  override private[bitwise] def onlyAndOrNot: Bit = {
+  override private[bitwise] lazy val onlyAndOrNot: Bit = {
     val headAndOrNot = bits.head.onlyAndOrNot
     val tailAndOrNot = BitXor(bits.tail).onlyAndOrNot
     (headAndOrNot & !tailAndOrNot) | (!headAndOrNot & tailAndOrNot)
   }
-  override private[bitwise] def pushNotInside: Bit = throw new Exception("pushNotInside should only be called after onlyAndOrNot")
-  override private[bitwise] def pushOrInside: Bit = throw new Exception("pushOrInside should only be called after onlyAndOrNot and pushNotInside")
+  override private[bitwise] lazy val pushNotInside: Bit = throw new Exception("pushNotInside should only be called after onlyAndOrNot")
+  override private[bitwise] lazy val pushOrInside: Bit = throw new Exception("pushOrInside should only be called after onlyAndOrNot and pushNotInside")
 
 }
 
@@ -170,14 +169,14 @@ case class BitEq (left: Bit, right: Bit) extends BitFormula with BinaryOperator 
 }
 
 object BitNot {
-  def apply(bit: Bit): Bit = bit match {
-    case BitValue(v) => if(v) ZERO else ONE
+  def apply[T <: Bit](bit: T): Bit = bit match {
+    case BitValue(v) => if (v) ZERO else ONE
     case BitNot(n) => n
     case f: BitFormula => new BitNot(f)
   }
 }
 
-case class BitNot (bit: Bit) extends BitFormula {
+case class BitNot[T <: Bit] (bit: T) extends BitFormula {
   override def toString: String = s"(!$bit)"
   def substitute(vars: Map[BitVar, Bit]): Bit = !bit.substitute(vars)
   private[bitwise] def onlyAndOrNot: Bit = !bit.onlyAndOrNot

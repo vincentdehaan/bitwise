@@ -114,9 +114,9 @@ trait BitwiseAssertions extends Matchers {
    */
   def assertOrInside(bit: Bit): Unit = assertTree(bit){
     _ match {
-      case or: BitOr => or.bits.forall{
+      case or: BitOr[_] => or.bits.forall{
         _ match {
-          case _: BitAnd => false
+          case _: BitAnd[_] => false
           case _ => true
         }
       }

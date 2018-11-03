@@ -353,14 +353,30 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions with BitVarX
 
   it should "implement pushOrInside" in {
     // Arrange
-    val f = !(x1 | (x2 & x3))
+    val f1 = !(x1 | (x2 & x3))
+    val f2 = x1|(x3&((!x5)|(x7&(!x6))|((!x7)&x6))&(x5|(((!x7)|x6)&(x7|(!x6)))))
+    val f3 = x1|((!x3)&((x5&((!x7)|x6)&(x7|(!x6)))|((!x5)&((x7&(!x6))|((!x7)&x6)))))
+    val f4 = x1 | (x2 & x3) | (x4 & x5)
+    val f5 = ((!x1)|(x3&((!x5)|(x7&(!x6))|x1)&(x5|x1)|((!x3)&(x2|((!x5)&x1)))))
 
     // Act
-    val fOrInside = f.pushOrInside
+    val f1OrInside = f1.pushOrInside
+    val f2OrInside = f2.pushOrInside
+    val f3OrInside = f3.pushOrInside
+    val f4OrInside = f4.pushOrInside
+    val f5OrInside = f5.pushOrInside
 
     // Assert
-    assertEquivalence(f, fOrInside)
-    assertOrInside(fOrInside)
+    assertEquivalence(f1, f1OrInside)
+    assertOrInside(f1OrInside)
+    assertEquivalence(f2, f2OrInside)
+    assertOrInside(f2OrInside)
+    assertEquivalence(f3, f3OrInside)
+    assertOrInside(f3OrInside)
+    assertEquivalence(f4, f4OrInside)
+    assertOrInside(f4OrInside)
+    assertEquivalence(f5, f5OrInside)
+    assertOrInside(f5OrInside)
   }
 
   "BitVar" should "implement substitute" in {
