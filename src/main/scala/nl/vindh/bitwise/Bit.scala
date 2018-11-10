@@ -62,9 +62,21 @@ object BitAnd {
           case ONE => Nil // We already know that not ALL elements are ONE
           case bit => List(bit)
         }
-      ).distinct
-      if(cleanBits.size == 1) cleanBits.head
-      else new BitAnd(cleanBits)
+      ).foldRight((Nil: List[Bit], Set(): Set[Bit], Set(): Set[Bit], ONE)) { // TODO: break loop earlier
+        (l, r) => // TODO: _1 and _2 are the same; remove _1; also at BitOr
+          l match {
+            case BitNot(b) if(r._2.contains(b)) => (r._1, r._2, r._3, ZERO)
+            case b if(r._3.contains(b)) => (r._1, r._2, r._3, ZERO)
+            case b if(r._2.contains(b)) => r
+            case b => b match {
+              case BitNot(bb) => (b :: r._1, r._2 + b, r._3 + bb, r._4)
+              case _ => (b :: r._1, r._2 + b, r._3, r._4)
+            }
+          }
+      }
+      if(cleanBits._4 == ZERO) ZERO
+      else if(cleanBits._1.size == 1) cleanBits._1.head
+      else new BitAnd(cleanBits._1)
     }
 
   // TODO: solve this with the type system
@@ -88,11 +100,24 @@ object BitOr {
           case ZERO => Nil
           case bit => List(bit)
         }
-      ).distinct
-      if(cleanBits.size == 1) cleanBits.head
-      else new BitOr(cleanBits)
-    }
+      ).foldRight((Nil: List[Bit], Set(): Set[Bit], Set(): Set[Bit], ZERO)) { // TODO: break loop earlier
+        (l, r) =>
+          l match {
+            case BitNot(b) if(r._2.contains(b)) => (r._1, r._2, r._3, ONE)
+            case b if(r._3.contains(b)) => (r._1, r._2, r._3, ONE)
+            case b if(r._2.contains(b)) => r
+            case b => b match {
+              case BitNot(bb) => (b :: r._1, r._2 + b, r._3 + bb, r._4)
+              case _ => (b :: r._1, r._2 + b, r._3, r._4)
+            }
+          }
+      }
+      if(cleanBits._4 == ONE) ONE
+      else if(cleanBits._1.size == 1) cleanBits._1.head
+      else new BitOr(cleanBits._1)
 
+
+    }
   // TODO: solve this with the type system
   private[bitwise] def cleanApply(bits: List[Bit]): Bit = new BitOr(bits)
 }

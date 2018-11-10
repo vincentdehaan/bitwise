@@ -215,6 +215,18 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions with BitVarX
     assertNotInside(notInside)
   }
 
+  it should "implement x & !x == ZERO" in {
+    // Arrange
+
+    // Act
+    val f1 = x1 & !x1
+    val f2 = x1 & x2 & x3 & !x1
+
+    // Assert
+    assert(f1 === ZERO)
+    assert(f2 === ZERO)
+  }
+
   "BitOr" should "implement substitute" in {
     // Arrange
     val f = x1 | x2
@@ -264,6 +276,18 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions with BitVarX
     assertEquivalence(g, gOrInside)
     assertOrInside(fOrInside)
     assertOrInside(gOrInside)
+  }
+
+  it should "implement x | !x === ONE" in {
+    // Arrange
+
+    // Act
+    val f1 = x1 | !x1
+    val f2 = x1 | x2 | x3 | !x1
+
+    // Assert
+    assert(f1 === ONE)
+    assert(f2 === ONE)
   }
 
   "BitXor" should "implement substitute" in {

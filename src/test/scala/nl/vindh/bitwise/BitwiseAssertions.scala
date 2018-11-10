@@ -44,13 +44,13 @@ trait BitwiseAssertions extends Matchers {
 
   def assertEquivalence(left: Bit, right: Bit): Unit = {
     val varnamesLeft = getVariables(left)
-    val varnamesRight = getVariables(right)
-    if(varnamesLeft != varnamesRight) throw new Exception("Formulas don't have the same variables!")
 
-    val varnames = varnamesLeft
-
-    foreachValuation(varnames){
-      valuation => assert(left.substitute(valuation) === right.substitute(valuation), valuation)
+    foreachValuation(varnamesLeft){
+      valuation => {
+        assert(left.substitute(valuation) === right.substitute(valuation), valuation)
+        assert(left.substitute(valuation).isInstanceOf[BitValue])
+        assert(right.substitute(valuation).isInstanceOf[BitValue])
+      }
     }
   }
 
