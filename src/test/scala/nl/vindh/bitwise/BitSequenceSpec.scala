@@ -7,10 +7,14 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     // Arrange
 
     // Act
-    val bs = BitSequence(17)
+    val bs0 = BitSequence(0)
+    val bs1 = BitSequence(1)
+    val bs17 = BitSequence(17)
 
     // Assert
-    assert(bs.toInt === 17)
+    assert(bs0.toInt === 0)
+    assert(bs1.toInt === 1)
+    assert(bs17.toInt === 17)
   }
 
   it should "implement &" in {
@@ -85,15 +89,20 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
 
   it should "implement +" in {
     // Arrange
-    val xs = BitSequence(23)
-    val ys = BitSequence(45)
+    val xs0 = BitSequence(0)
+    val xs1 = BitSequence(1)
+    val xs23 = BitSequence(23)
+    val xs45 = BitSequence(45)
 
     // Act
-    val sum = xs + ys
+    val s23_45 = xs23 + xs45
+    val s0_1 = xs0 + xs1
 
     // Assert
-    assert(sum.toInt === 68)
-    assert(sum.length === xs.length)
+    assert(s23_45.toInt === 68)
+    assert(s23_45.length === WORD_SIZE)
+    assert(s0_1.toInt === 1)
+    assert(s0_1.length === WORD_SIZE)
   }
 
   it should "implement variable" in {

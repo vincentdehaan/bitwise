@@ -54,6 +54,21 @@ trait BitwiseAssertions extends Matchers {
     }
   }
 
+  // Asserts that f === op(left, right)
+  def assertBinaryOperator(f: Bit, left: Bit, right: Bit, op: (Boolean, Boolean) => Boolean): Unit = {
+    def bitToBool(b: Bit): Boolean = if(b == ONE) true else false
+    val varnames = getVariables(left) ++ getVariables(right)
+    foreachValuation(varnames){
+      valuation => {
+        val lbool = bitToBool(left.substitute(valuation))
+        val rbool = bitToBool(right.substitute(valuation))
+        val fbool = bitToBool(f.substitute(valuation))
+
+        assert(fbool === op(lbool, rbool))
+      }
+    }
+  }
+
   def assertTseitinEquivalence(orig: Bit, tseitin: Bit): Unit = {
     val varNamesOrig = getVariables(orig)
     val varNamesNew = getVariables(tseitin) -- varNamesOrig
