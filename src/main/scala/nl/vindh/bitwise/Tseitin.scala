@@ -70,6 +70,7 @@ object Tseitin {
 
 
 case class TseitinClause (v: BitVar, f: Bit) {
-  // Note that only v => f is implemented; see Kroening, p. 14.
-  def toCnf: Bit = (!v | f).onlyAndOrNot.pushNotInside.pushOrInside
+  // Note that only v => f is implemented; see Kroening, p. 14. // TODO: I temporarily disabled this optimization because it conserves satisfiability, but the satisfying model changes
+  //def toCnf: Bit = (!v | f).onlyAndOrNot.pushNotInside.pushOrInside
+  def toCnf: Bit = (!v | f).onlyAndOrNot.pushNotInside.pushOrInside & (!f | v).onlyAndOrNot.pushNotInside.pushOrInside
 }

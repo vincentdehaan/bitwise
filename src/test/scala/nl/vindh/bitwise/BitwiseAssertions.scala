@@ -69,19 +69,31 @@ trait BitwiseAssertions extends Matchers {
     }
   }
 
+  /*
+   * Test for two criteria:
+   *  I.  For all valuations a of the vars of orig: if a satisfies orig, then there is a valuation t of the Tseitin vars
+   *      such a combined with t satisfies tseitin.
+   *  II. For all valuations of tseitin that satisfy tseitin, they also satisfy orig.
+   */
   def assertTseitinEquivalence(orig: Bit, tseitin: Bit): Unit = {
     val varNamesOrig = getVariables(orig)
-    val varNamesNew = getVariables(tseitin) -- varNamesOrig
+    val varNames = getVariables(tseitin)
+    val varNamesNew = varNames -- varNamesOrig
 
+    // Test I.
     foreachValuation(varNamesOrig){
-      valuation => {
-        val valOption = findValuation(varNamesNew){
-          valuationNew => orig.substitute(valuation) == tseitin.substitute(valuation).substitute(valuationNew)
+      valuation => if(orig.substitute(valuation) == ONE){
+        val valOpt = findValuation(varNamesNew){
+          newValuation => tseitin.substitute(valuation ++ newValuation) == ONE
         }
-        valOption match {
-          case None => throw new Exception("Formulas not equisatisfiable")
-          case Some(v) => assert(orig.substitute(valuation) == tseitin.substitute(valuation).substitute(v)) // TODO: is this useful?
-        }
+        assert(valOpt.size === 1)
+      }
+    }
+
+    // Test II.
+    foreachValuation(varNames){
+      valuation => if(tseitin.substitute(valuation) == ONE){
+        assert(orig.substitute(valuation) == ONE, (orig, tseitin, valuation))
       }
     }
   }
