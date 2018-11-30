@@ -8,7 +8,7 @@ object Tseitin {
 
   def transform(seq: BitSequence): BitSequence =
     //new BitSequence(seq.map(transform(_)))
-    seq.map(transform(_))
+    new BitSequence(seq.bits.map(transform(_)))
 
   // TODO: start over for every transformation
   val varPrefix = "tstn"
