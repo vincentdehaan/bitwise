@@ -45,6 +45,8 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
 
   def >>> (rot: Int): BitSequence = new BitSequence(bits.drop(rot) ++ bits.take(rot))
 
+  def >> (sh: Int): BitSequence = new BitSequence(bits.drop(sh) ++ List.fill(sh)(ZERO))
+
   def + (that: BitSequence): BitSequence =  // Implement a ripple-carry adder
     if(this.length != that.length) throw new Exception("Sequences not of same length")
     else new BitSequence(this.bits.zip(that.bits).foldLeft[(List[Bit], Bit)]((Nil, ZERO)) {

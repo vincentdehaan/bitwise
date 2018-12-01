@@ -116,6 +116,18 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     assert(rot.toInt === 197)
   }
 
+  it should "implement >>" in {
+    // Arrange
+    val xs = BitSequence(23, 8)
+
+    // Act
+    val sh = xs >> 2
+
+    // Assert
+    assert(sh.toInt == 5)
+
+  }
+
   it should "implement +" in {
     // Arrange
     val xs0 = BitSequence(0)
