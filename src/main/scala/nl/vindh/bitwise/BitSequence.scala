@@ -18,6 +18,15 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
     }
   }.mkString(" ")
 
+  /*
+    Prints words in order and bits within words reversed
+   */
+  def toWordString(wordsize: Int): String =
+    bits.grouped(wordsize).map(_.reverse.mkString("")).mkString(" ")
+
+  def toHexString: String =
+    bits.grouped(8).map(BitSequence.fromSeq(_).toInt.toHexString).mkString
+
   def toInt: Int = bits.zipWithIndex.map{
     _ match {
       case (bit: BitValue, exp: Int) => (if(bit.value) 1 else 0) * scala.math.pow(2, exp).toInt
@@ -82,7 +91,10 @@ object BitSequence {
   val empty: BitSequence = new BitSequence(Nil)
 
   def fromAscii(str: String): BitSequence =
-    str.map(ch => BitSequence(ch.toInt, 8)).foldLeft(BitSequence.empty)(_ |>| _)
+    str.map(ch => BitSequence(ch.toInt, 8)).foldLeft(BitSequence.empty)(_ || _)
+
+  def toAscii(s: BitSequence): String = ???
+
 
   def variable(prefix: String, size: Int) = new BitSequence(
     0 until size map (n => BitVar(prefix + n))

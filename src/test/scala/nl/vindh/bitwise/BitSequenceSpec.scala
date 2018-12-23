@@ -31,21 +31,6 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     assert(bslong.bits.size === 26*4)
   }
 
-  it should "generate a BitSequence from an ASCII string" in {
-    // Arrange
-
-    // Act
-    val abc = BitSequence.fromAscii("abc")
-
-    // Assert
-    assert(abc === BitSequence.fromSeq(
-      List(
-        ZERO, ONE, ONE, ZERO, ZERO, ZERO, ZERO, ONE, // "a"
-        ZERO, ONE, ONE, ZERO, ZERO, ZERO, ONE, ZERO, // "b"
-        ZERO, ONE, ONE, ZERO, ZERO, ZERO, ONE, ONE // "c"
-      )))
-  }
-
   it should "implement &" in {
     // Arrange
     val xs = BitSequence(107)
@@ -195,6 +180,31 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     // Assert
     assert(concat == BitSequence(195, 8))
   }*/
+
+  "fromAscii" should "convert a single ASCII character correctly" in {
+    // Arrange
+
+    // Act
+    val a = BitSequence.fromAscii("a")
+
+    // Assert
+    assert(a.toInt == 97)
+  }
+
+  it should "generate a BitSequence from an ASCII string" in {
+    // Arrange
+
+    // Act
+    val abc = BitSequence.fromAscii("abc")
+
+    // Assert
+    assert(abc === BitSequence.fromSeq(
+      List(
+        ONE, ZERO, ZERO, ZERO, ZERO, ONE, ONE, ZERO, // "a"
+        ZERO, ONE, ZERO, ZERO, ZERO, ONE, ONE, ZERO, // "b"
+        ONE, ONE, ZERO, ZERO, ZERO, ONE, ONE, ZERO // "c"
+      )))
+  }
 
   "BitSequence.empty" should "return a sequence of length 0" in {
     // Arrange
