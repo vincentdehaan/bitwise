@@ -25,13 +25,25 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
     bits.grouped(wordsize).map(_.reverse.mkString("")).mkString(" ")
 
   def toHexString: String =
-    bits.grouped(8).map(BitSequence.fromSeq(_).toInt.toHexString).mkString
+    bits.grouped(8).map{
+      byte => {
+        val s = BitSequence.fromSeq(byte).toInt.toHexString
+        if (s.size == 1) "0" + s else s
+      }
+    }.mkString
 
   def toInt: Int = bits.zipWithIndex.map{
     _ match {
       case (bit: BitValue, exp: Int) => (if(bit.value) 1 else 0) * scala.math.pow(2, exp).toInt
       case _ => throw new Exception("toInt only possible with sequence of values")
     }
+  }.sum
+
+  /*
+    Little endian encoding. This is also used by the BitSequence factory method that takes a hexadecimal string.
+   */
+  def toIntLE: Int = bits.grouped(8).toList.reverse.zipWithIndex.map {
+    case (byte, i) => (BitSequence.fromSeq(byte).toInt * scala.math.pow(256, i)).toInt
   }.sum
 
   private def binOp(that: BitSequence, op: (Bit, Bit) => Bit): BitSequence =
@@ -85,7 +97,7 @@ object BitSequence {
 
   def apply(hex: String): BitSequence =
     new BitSequence(
-      hex.grouped(2).toList.reverse.map(Integer.parseInt(_, 16)).map(i => 0 until 8 map(n => if((i & (1 << n)) != 0) ONE else ZERO)).flatten.toList
+      (if(hex.size % 2 == 0) hex else "0" + hex).grouped(2).toList.map(Integer.parseInt(_, 16)).map(i => 0 until 8 map(n => if((i & (1 << n)) != 0) ONE else ZERO)).flatten.toList
     )
 
   val empty: BitSequence = new BitSequence(Nil)

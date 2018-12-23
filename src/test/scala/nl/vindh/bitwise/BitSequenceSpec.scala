@@ -26,8 +26,8 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     val bslong = BitSequence("AAAAAAAAAAAAAAAAAAAAAAAAAA")
 
     // Assert
-    assert(bsff.toInt === 255)
-    assert(bscafe.toInt === 51966)
+    assert(bsff.toIntLE === 255)
+    assert(bscafe.toIntLE === 51966)
     assert(bslong.bits.size === 26*4)
   }
 
@@ -129,6 +129,26 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     assert(s23_45.length === WORD_SIZE)
     assert(s0_1.toInt === 1)
     assert(s0_1.length === WORD_SIZE)
+  }
+
+  it should "implement toHexString" in {
+    // Arrange
+    val bs23 = BitSequence("17")
+    val bs1203 = BitSequence("1203")
+    val bs258 = BitSequence("102")
+    val bs0258 = BitSequence("0258")
+
+    // Act
+    val s23 = bs23.toHexString
+    val s1203 = bs1203.toHexString
+    val s258 = bs258.toHexString
+    val s0258 = bs0258.toHexString
+
+    // Asset
+    assert(s23 === "17")
+    assert(s1203 === "1203")
+    assert(s258 === "0102")
+    assert(s0258 === "0258")
   }
 
   it should "implement variable" in {
