@@ -27,12 +27,14 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
   def toHexString: String =
     bits.grouped(8).map{
       byte => {
-        val s = BitSequence.fromSeq(byte).toInt.toHexString
+        val s = BitSequence.fromSeq(byte).toInt().toHexString
         if (s.size == 1) "0" + s else s
       }
     }.mkString
 
-  def toInt: Int = bits.zipWithIndex.map{
+  def toInt: Int = toInt(false)
+
+  def toInt(rev: Boolean = false): Int = (if(rev) bits.reverse else bits).zipWithIndex.map{
     _ match {
       case (bit: BitValue, exp: Int) => (if(bit.value) 1 else 0) * scala.math.pow(2, exp).toInt
       case _ => throw new Exception("toInt only possible with sequence of values")
@@ -43,7 +45,7 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
     Little endian encoding. This is also used by the BitSequence factory method that takes a hexadecimal string.
    */
   def toIntLE: Int = bits.grouped(8).toList.reverse.zipWithIndex.map {
-    case (byte, i) => (BitSequence.fromSeq(byte).toInt * scala.math.pow(256, i)).toInt
+    case (byte, i) => (BitSequence.fromSeq(byte).toInt() * scala.math.pow(256, i)).toInt
   }.sum
 
   private def binOp(that: BitSequence, op: (Bit, Bit) => Bit): BitSequence =
@@ -64,7 +66,7 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
 
   def unary_! : BitSequence = new BitSequence(this.bits.map(! _))
 
-  def >>> (rot: Int): BitSequence = new BitSequence(bits.drop(rot) ++ bits.take(rot))
+  def >>> (rot: Int): BitSequence = new BitSequence(bits.drop(bits.length - rot) ++ bits.take(bits.length - rot))
 
   def >> (sh: Int): BitSequence = new BitSequence(bits.drop(sh) ++ List.fill(sh)(ZERO))
 
@@ -90,10 +92,10 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
 object BitSequence {
   def apply(i: Int): BitSequence = apply(i, WORD_SIZE)
 
-  def apply(i: Int, size: Int): BitSequence =
-    new BitSequence(
-      0 until size map (n => if((i & (1 << n)) != 0) ONE else ZERO),
-    )
+  def apply(i: Int, size: Int, rev: Boolean = false): BitSequence = {
+    val bs = 0 until size map (n => if ((i & (1 << n)) != 0) ONE else ZERO)
+    new BitSequence(if (rev) bs.reverse else bs)
+  }
 
   def apply(hex: String): BitSequence =
     new BitSequence(
@@ -103,7 +105,7 @@ object BitSequence {
   val empty: BitSequence = new BitSequence(Nil)
 
   def fromAscii(str: String): BitSequence =
-    str.map(ch => BitSequence(ch.toInt, 8)).foldLeft(BitSequence.empty)(_ || _)
+    str.map(ch => BitSequence(ch.toInt, 8, true)).foldLeft(BitSequence.empty)(_ || _)
 
   def toAscii(s: BitSequence): String = ???
 
