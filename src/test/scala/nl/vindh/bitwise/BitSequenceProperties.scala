@@ -45,4 +45,26 @@ class BitSequenceProperties extends FlatSpec with Matchers with GeneratorDrivenP
       }
     }
   }
+
+  it should "implement <<<" in {
+    // Arrange
+    val len = 32
+    val shift = 7
+    val gen = Gen.containerOfN[List, BitValue](len, Gen.oneOf(ZERO, ONE))
+
+    // TODO: if this test fails, ScalaCheck tries to shrink the test vector. However, it does not understand that it needs to be of fixed length. How do I fix this?
+    forAll(gen) {
+      lst: List[BitValue] => {
+        val bs = BitSequence.fromSeq(lst)
+
+        // Act
+        val sh = bs <<< shift
+
+        // Assert
+        (0 until len).foreach {
+          i => assert(sh((i - shift + len) % len) === bs(i))
+        }
+      }
+    }
+  }
 }

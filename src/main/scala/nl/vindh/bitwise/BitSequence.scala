@@ -68,6 +68,8 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
 
   def >>> (rot: Int): BitSequence = new BitSequence(bits.drop(bits.length - rot) ++ bits.take(bits.length - rot))
 
+  def <<< (rot: Int): BitSequence = new BitSequence(bits.drop(rot) ++ bits.take(rot))
+
   def >> (sh: Int): BitSequence = new BitSequence(bits.drop(sh) ++ List.fill(sh)(ZERO))
 
   def + (that: BitSequence): BitSequence =  // Implement a ripple-carry adder
