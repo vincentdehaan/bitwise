@@ -26,9 +26,10 @@ case class BitValue(value: Boolean) extends AnyVal with Bit with Atomic {
 
 abstract class BitFormula extends Bit {}
 
-trait BinaryOperator {
+trait BinaryOperator extends Bit {
   val left: Bit
   val right: Bit
+  private[bitwise] val opSymbol: String
   private[bitwise] def op: (Bit, Bit) => Bit
   private[bitwise] def onlyAndOrNot: Bit = op(left.onlyAndOrNot, right.onlyAndOrNot)
   private[bitwise] def pushNotInside: Bit = op(left.pushNotInside, right.pushNotInside)
@@ -184,6 +185,7 @@ object BitEq {
 
 case class BitEq (left: Bit, right: Bit) extends BitFormula with BinaryOperator {
   override def toString: String = s"($left<->$right)"
+  override val opSymbol: String = "<->"
   def substitute(vars: Map[BitVar, Bit]): Bit = left.substitute(vars) <-> right.substitute(vars)
   def op: (Bit, Bit) => Bit = _ <-> _
   override private[bitwise] def onlyAndOrNot: Bit = {
