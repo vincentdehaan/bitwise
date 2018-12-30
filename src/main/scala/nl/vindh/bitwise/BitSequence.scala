@@ -27,10 +27,10 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
   def toHexString: String =
     bits.grouped(8).map{
       byte => {
-        val s = BitSequence.fromSeq(byte).toInt().toHexString
+        val s = BitSequence.fromSeq(byte).toInt.toHexString
         if (s.size == 1) "0" + s else s
       }
-    }.mkString
+    }.toList.reverse.mkString
 
   def toInt: Int = toInt(false)
 
@@ -70,6 +70,7 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
 
   def <<< (rot: Int): BitSequence = new BitSequence(bits.drop(rot) ++ bits.take(rot))
 
+  // TODO: >> and <<< shift in the same direction; this is inconsistent; solve this
   def >> (sh: Int): BitSequence = new BitSequence(bits.drop(sh) ++ List.fill(sh)(ZERO))
 
   def + (that: BitSequence): BitSequence =  // Implement a ripple-carry adder
@@ -95,19 +96,25 @@ object BitSequence {
   def apply(i: Int): BitSequence = apply(i, WORD_SIZE)
 
   def apply(i: Int, size: Int, rev: Boolean = false): BitSequence = {
-    val bs = 0 until size map (n => if ((i & (1 << n)) != 0) ONE else ZERO)
-    new BitSequence(if (rev) bs.reverse else bs)
+    val bs = 0 until ((size - 1) % 32) map (n => if ((i & (1 << n)) != 0) ONE else ZERO)
+    // TODO: cleanup!
+    // TODO: test!
+    // TODO: what if size == 32?
+    if(rev) zeros(size - ((size - 1) % 32)) || new BitSequence(if (rev) bs.reverse else bs)
+    else new BitSequence(if (rev) bs.reverse else bs) || zeros(size - ((size - 1) % 32))
   }
+
+  def zeros(len: Int): BitSequence = new BitSequence(List.fill(len)(ZERO))
 
   def apply(hex: String): BitSequence =
     new BitSequence(
-      (if(hex.size % 2 == 0) hex else "0" + hex).grouped(2).toList.map(Integer.parseInt(_, 16)).map(i => 0 until 8 map(n => if((i & (1 << n)) != 0) ONE else ZERO)).flatten.toList
+      (if(hex.size % 2 == 0) hex else "0" + hex).grouped(2).toList.map(Integer.parseInt(_, 16)).map(i => 0 until 8 map(n => if((i & (1 << n)) != 0) ONE else ZERO)).reverse.flatten.toList
     )
 
   val empty: BitSequence = new BitSequence(Nil)
 
   def fromAscii(str: String): BitSequence =
-    str.map(ch => BitSequence(ch.toInt, 8, true)).foldLeft(BitSequence.empty)(_ || _)
+    str.map(ch => BitSequence(ch.toInt, 8)).reverse.foldLeft(BitSequence.empty)(_ || _)
 
   def toAscii(s: BitSequence): String = ???
 
