@@ -73,14 +73,18 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
   // TODO: >> and <<< shift in the same direction; this is inconsistent; solve this
   def >> (sh: Int): BitSequence = new BitSequence(bits.drop(sh) ++ List.fill(sh)(ZERO))
 
-  def + (that: BitSequence): BitSequence =  // Implement a ripple-carry adder
+  def + (that: BitSequence): LazyAdder = new LazyAdder(List(this, that))
+  def + (that: LazyAdder): LazyAdder = new LazyAdder(this :: that.ops)
+
+  // TODO: this will be obsolete when LazyAdder has been fully implemented
+  private[bitwise] def simpleAdd (that: BitSequence): BitSequence =  // Implement a ripple-carry adder
     if(this.length != that.length) throw new Exception("Sequences not of same length")
     else new BitSequence(this.bits.zip(that.bits).foldLeft[(List[Bit], Bit)]((Nil, ZERO)) {
       (acc: (List[Bit], Bit), pair: (Bit, Bit)) => (acc, pair) match {
-          case ((lst: List[Bit], carry: Bit), (left: Bit, right: Bit)) =>
-            (((left ^ right) ^ carry) :: lst, ((left ^ right) & carry) | left & right)
-        }
-      }._1.reverse)
+        case ((lst: List[Bit], carry: Bit), (left: Bit, right: Bit)) =>
+          (((left ^ right) ^ carry) :: lst, ((left ^ right) & carry) | left & right)
+      }
+    }._1.reverse)
 
   def || (that: BitSequence): BitSequence = new BitSequence(this.bits ++ that.bits)
 

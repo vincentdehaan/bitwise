@@ -130,14 +130,20 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     val xs45 = BitSequence(45)
 
     // Act
+    val s1_1 = xs1 + xs1
     val s23_45 = xs23 + xs45
     val s0_1 = xs0 + xs1
+    val s0_1_23_45 = xs0 + xs1 + xs23 + xs45
 
     // Assert
+    assert(s1_1.toInt === 2)
+    assert(s1_1.length === WORD_SIZE)
     assert(s23_45.toInt === 68)
     assert(s23_45.length === WORD_SIZE)
     assert(s0_1.toInt === 1)
     assert(s0_1.length === WORD_SIZE)
+    assert(s0_1_23_45.toInt === 69)
+    assert(s0_1_23_45.length === WORD_SIZE)
   }
 
   it should "implement toHexString" in {
@@ -247,5 +253,46 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     assert(e.bits.length === 0)
     assert(g.bits.length == f.bits.length)
     assert(f === g)
+  }
+
+  "LazyAdder" should "add BitSequences" in {
+    // Arrange
+    val x = BitSequence(123)
+    val y = BitSequence(23)
+    val z = BitSequence(4)
+
+    // Act
+    val xy = new LazyAdder(List(x, y)).execute
+    val yz = new LazyAdder(List(y, z)).execute
+    val xyz = new LazyAdder(List(x, y, z)).execute
+
+    // Assert
+    assert(xy.toInt === 146)
+    assert(yz.toInt === 27)
+    assert(xyz.toInt === 150)
+  }
+
+  it should "behave like a BitSequence" in {
+    // Arrange
+    val x = BitSequence(123)
+    val y = BitSequence(4)
+    val z = BitSequence(23)
+    val la = new LazyAdder(List(x, y))
+
+
+    // Act
+    val xor = la ^ z
+    val xor2 = z ^ la
+    val and = la & z
+    val and2 = z & la
+    val not = !la
+
+    // Assert
+    val s = BitSequence(127)
+    assert(xor === (s ^ z))
+    assert(xor2 === (z ^ s))
+    assert(and === (s & z))
+    assert(and2 === (z & s))
+    assert(not === (!s))
   }
 }
