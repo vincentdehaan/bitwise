@@ -6,7 +6,7 @@ trait Bit extends Any{
   def ^ (that: Bit): Bit = BitXor(List(this, that))
   def <-> (that: Bit): Bit = BitEq(this, that)
   def unary_! : Bit = BitNot(this)
-  def substitute(vars: Map[BitVar, Bit]): Bit
+  def substitute(vars: Valuation): Bit
   def isCnf: Boolean = false // Returns true only if this is a cnf that associates to the right in both AND and OR
   private def isCnfClause: Boolean = false
   private[bitwise] def onlyAndOrNot: Bit
