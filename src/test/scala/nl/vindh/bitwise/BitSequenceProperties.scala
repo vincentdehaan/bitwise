@@ -12,14 +12,14 @@ class BitSequenceProperties extends FlatSpec with Matchers with GeneratorDrivenP
     // Arrange
     forAll {
       tup: (Int, Int) => {
-        val x = BitSequence((tup._1 % 256).abs)
-        val y = BitSequence((tup._2 % 256).abs)
+        val x = BitSequence((tup._1.abs % 256))
+        val y = BitSequence((tup._2.abs % 256))
 
         // Act
         val z = x + y
 
         // Assert
-        assert(z.toInt() === ((tup._1.abs % 256) + (tup._2.abs % 256)) % 256)
+        assert(z.toInt === (((tup._1.abs % 256) + (tup._2.abs % 256)) % 256))
       }
     }
   }
