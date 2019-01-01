@@ -2,12 +2,17 @@ package nl.vindh.bitwise
 
 import scala.collection.mutable
 
-case class FormulaWithDefs(bit: Bit, defs: Map[BitVar, Bit]){
+case class BitWithDefs(bit: Bit, defs: Map[BitVar, Bit]){
   def substitute(vars: Valuation): Bit = {
+    // TODO: what if multiple simplifications have resulted in nested substitutions?
     val substitutedDefs = defs.map(tup => (tup._1, tup._2.substitute(vars)))
     val allVars = substitutedDefs ++ vars
     bit.substitute(allVars)
   }
+}
+
+case class BitSequenceWithDefs(bs: BitSequence, defs: Map[BitVar, Bit]){
+
 }
 
 case class SimplifierConfig(
@@ -23,14 +28,22 @@ class VariableGenerator(prefix: String){
 }
 
 object Simplifier {
-  def substituteSubtrees(bit: Bit)(implicit vargen: VariableGenerator, config: SimplifierConfig): FormulaWithDefs = {
+  def substituteSubtrees(bit: Bit)(implicit vargen: VariableGenerator, config: SimplifierConfig): BitWithDefs = {
+    val bs = BitSequence.fromSeq(List(bit))
+    val bswd = substituteSubtrees(bs)
+    BitWithDefs(bswd.bs.bits(0), bswd.defs)
+  }
+
+  def substituteSubtrees(bs: BitSequence)(implicit vargen: VariableGenerator, config: SimplifierConfig): BitSequenceWithDefs = {
     // Find all subtrees and register for each one the number of operands and the number of occurrences
     val subtrees = mutable.Map[Bit, (Int, Int)]()
 
-    traverseSubtrees(bit){
-      b => subtrees.get(b) match {
-        case Some((ops, occ)) => subtrees(b) = (ops, occ + 1)
-        case None => subtrees(b) = (countOperators(b), 1)
+    bs.bits.foreach {
+      bit => traverseSubtrees(bit) {
+        b => subtrees.get(b) match {
+          case Some((ops, occ)) => subtrees(b) = (ops, occ + 1)
+          case None => subtrees(b) = (countOperators(b), 1)
+        }
       }
     }
 
@@ -40,18 +53,18 @@ object Simplifier {
 
     val defs = mutable.Map[BitVar, Bit]()
 
-    val newTree = expensiveSubtrees.foldLeft(bit){
-      (tree, subtreeWithMetadata) => {
+    val newTrees = expensiveSubtrees.foldLeft(bs.bits){ // TODO: shouldn't I sort this first in order to start with the most expensive replacement
+      (trees, subtreeWithMetadata) => {
         val v = vargen.next
         defs(v) = subtreeWithMetadata._1
-        replaceSubtree(tree, subtreeWithMetadata._1, v)
+        trees.map(tree => replaceSubtree(tree, subtreeWithMetadata._1, v)) // TODO: this could be optimized if I keep track of the trees that actually contain the specific subtree
       }
     }
 
-    FormulaWithDefs(newTree, defs.toMap)
+    BitSequenceWithDefs(BitSequence.fromSeq(newTrees), defs.toMap)
   }
 
-  def traverseSubtrees(bit: Bit)(f: Bit => Unit): Unit = {
+  private def traverseSubtrees(bit: Bit)(f: Bit => Unit): Unit = {
     f(bit)
     bit match {
       case BitValue(_) =>
@@ -67,7 +80,7 @@ object Simplifier {
   }
 
   // TODO: I could optimize this with Option, returning None of nothing was replaced
-  def replaceSubtree(tree: Bit, subtree: Bit, replacement: Bit): Bit = {
+  private def replaceSubtree(tree: Bit, subtree: Bit, replacement: Bit): Bit = {
     if(tree == subtree) replacement
     else tree match {
       case BitValue(_) => tree
@@ -83,7 +96,7 @@ object Simplifier {
   }
 
   // TODO: can this be used in the Metrics object or vice versa?
-  def countOperators(bit: Bit): Int = {
+  private def countOperators(bit: Bit): Int = {
     bit match {
       case BitValue(_) => 0
       case BitVar(_) => 0
