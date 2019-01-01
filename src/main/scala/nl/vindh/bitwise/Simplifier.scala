@@ -11,8 +11,16 @@ case class BitWithDefs(bit: Bit, defs: Map[BitVar, Bit]){
   }
 }
 
-case class BitSequenceWithDefs(bs: BitSequence, defs: Map[BitVar, Bit]){
+case class BitSequenceWithDefs(bs: BitSequence, defs: Map[BitVar, Bit]) extends BitSequence(bs.bits){
+  override def constructor(bits: Seq[Bit]): BitSequence =
+    new BitSequenceWithDefs(new BitSequence(bits), defs)
 
+  override def substitute(vars: Valuation): BitSequenceWithDefs = {
+    // TODO: what if multiple simplifications have resulted in nested substitutions?
+    val substitutedDefs = defs.map(tup => (tup._1, tup._2.substitute(vars)))
+    val allVars = substitutedDefs ++ vars
+    BitSequenceWithDefs(super.substitute(allVars), substitutedDefs)
+  }
 }
 
 case class SimplifierConfig(

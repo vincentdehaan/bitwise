@@ -5,8 +5,9 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutable?
+  protected def constructor(bits: Seq[Bit]): BitSequence = new BitSequence(bits)
   def apply(idx: Int): Bit = bits(idx)
-  def map(f: Bit => Bit): BitSequence = new BitSequence(bits.map(f)) // TODO: this is not necessary if I can extend LinearSeq
+  def map(f: Bit => Bit): BitSequence = constructor(bits.map(f)) // TODO: this is not necessary if I can extend LinearSeq
   val length: Int = bits.length
   override def toString: String = bits.reverse.mkString("(", ",", ")")
   def toString(width: Int): String = bits.reverse.map{
@@ -50,7 +51,7 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
 
   private def binOp(that: BitSequence, op: (Bit, Bit) => Bit): BitSequence =
     if(this.length != that.length) throw new Exception("Sequences not of same length")
-    else new BitSequence(
+    else constructor(
       this.bits.zip(that.bits).map{
         case (left, right) => op(left, right)
       }
@@ -64,32 +65,32 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
 
   def <-> (that: BitSequence): BitSequence = binOp(that, _ <-> _)
 
-  def unary_! : BitSequence = new BitSequence(this.bits.map(! _))
+  def unary_! : BitSequence = constructor(this.bits.map(! _))
 
-  def >>> (rot: Int): BitSequence = new BitSequence(bits.drop(bits.length - rot) ++ bits.take(bits.length - rot))
+  def >>> (rot: Int): BitSequence = constructor(bits.drop(bits.length - rot) ++ bits.take(bits.length - rot))
 
-  def <<< (rot: Int): BitSequence = new BitSequence(bits.drop(rot) ++ bits.take(rot))
+  def <<< (rot: Int): BitSequence = constructor(bits.drop(rot) ++ bits.take(rot))
 
   // TODO: >> and <<< shift in the same direction; this is inconsistent; solve this
-  def >> (sh: Int): BitSequence = new BitSequence(bits.drop(sh) ++ List.fill(sh)(ZERO))
+  def >> (sh: Int): BitSequence = constructor(bits.drop(sh) ++ List.fill(sh)(ZERO))
 
   def + (that: BitSequence): BitSequence =  // Implement a ripple-carry adder
     if(this.length != that.length) throw new Exception("Sequences not of same length")
-    else new BitSequence(this.bits.zip(that.bits).foldLeft[(List[Bit], Bit)]((Nil, ZERO)) {
+    else constructor(this.bits.zip(that.bits).foldLeft[(List[Bit], Bit)]((Nil, ZERO)) {
       (acc: (List[Bit], Bit), pair: (Bit, Bit)) => (acc, pair) match {
           case ((lst: List[Bit], carry: Bit), (left: Bit, right: Bit)) =>
             (((left ^ right) ^ carry) :: lst, ((left ^ right) & carry) | left & right)
         }
       }._1.reverse)
 
-  def || (that: BitSequence): BitSequence = new BitSequence(this.bits ++ that.bits)
+  def || (that: BitSequence): BitSequence = constructor(this.bits ++ that.bits)
 
-  def || (that: Bit): BitSequence = new BitSequence(this.bits ++ Seq(that))
+  def || (that: Bit): BitSequence = constructor(this.bits ++ Seq(that))
 
-  def |>| (that: BitSequence): BitSequence = new BitSequence(this.bits ++ that.bits.reverse)
+  def |>| (that: BitSequence): BitSequence = constructor(this.bits ++ that.bits.reverse)
 
   // TODO: if I use map instead of bits.map, I get a stackoverflow error
-  def substitute(vars: Map[BitVar, Bit]): BitSequence = new BitSequence(bits.map(bit => bit.substitute(vars)))
+  def substitute(vars: Map[BitVar, Bit]): BitSequence = constructor(bits.map(bit => bit.substitute(vars)))
 }
 
 object BitSequence {
