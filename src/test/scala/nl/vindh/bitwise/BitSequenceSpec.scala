@@ -39,14 +39,18 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
 
   it should "implement &" in {
     // Arrange
-    val xs = BitSequence(107)
-    val ys = BitSequence(221)
+    val xs1 = BitSequence(107)
+    val ys1 = BitSequence(221)
+    val xs2 = BitSequence("a8f109ff")
+    val ys2 = BitSequence("cde596f9")
 
     // Act
-    val and = xs & ys
+    val and1 = xs1 & ys1
+    val and2 = xs2 & ys2
 
     // Assert
-    assert(and.toInt === 73)
+    assert(and1.toInt === 73)
+    assert(and2.toHexString === "88e100f9")
   }
 
   it should "implement |" in {
@@ -63,14 +67,18 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
 
   it should "implement ^" in {
     // Arrange
-    val xs = BitSequence(14)
-    val ys = BitSequence(29)
+    val xs1 = BitSequence(14)
+    val ys1 = BitSequence(29)
+    val xs2 = BitSequence("410c420e")
+    val ys2 = BitSequence("10021071")
 
     // Act
-    val xor = xs ^ ys
+    val xor1 = xs1 ^ ys1
+    val xor2 = xs2 ^ ys2
 
     // Assert
-    assert(xor.toInt === 19)
+    assert(xor1.toInt === 19)
+    assert(xor2.toHexString === "510e527f")
   }
 
   it should "implement eq" in {
@@ -87,13 +95,16 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
 
   it should "implement !" in {
     // Arrange
-    val xs = BitSequence(17, 8) // Note that the answer depends on the word size
+    val xs1 = BitSequence(17, 8) // Note that the answer depends on the word size
+    val xs2 = BitSequence("e12d4f0e")
 
     // Act
-    val not = !xs
+    val not1 = !xs1
+    val not2 = !xs2
 
     // Assert
-    assert(not.toInt == 238)
+    assert(not1.toInt == 238)
+    assert(not2.toHexString === "1ed2b0f1")
   }
 
   it should "implement >>>" in {
@@ -112,14 +123,27 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
 
   it should "implement >>" in {
     // Arrange
-    val xs = BitSequence(23, 8)
+    val xs1 = BitSequence(23, 8)
+    val xs2 = BitSequence("6f20776f")
 
     // Act
-    val sh = xs >> 2
+    val sh1 = xs1 >> 2
+    val sh2 = xs2 >> 3
 
     // Assert
-    assert(sh.toInt == 5)
+    assert(sh1.toInt == 5)
+    assert(sh2.toHexString === "0de40eed")
+  }
 
+  it should "implement <<<" in {
+    // Arrange
+    val xs1 = BitSequence("446df4b9")
+
+    // Act
+    val sh1 = xs1 <<< 13
+
+    // Assert
+    assert(sh1.toHexString === "a5ca236f")
   }
 
   it should "implement +" in {
@@ -128,16 +152,20 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     val xs1 = BitSequence(1)
     val xs23 = BitSequence(23)
     val xs45 = BitSequence(45)
+    val xs2 = BitSequence("a54ff53a")
+    val xs3 = BitSequence("3bdd59d4")
 
     // Act
     val s23_45 = xs23 + xs45
     val s0_1 = xs0 + xs1
+    val s2_3 = xs2 + xs3
 
     // Assert
     assert(s23_45.toInt === 68)
     assert(s23_45.length === WORD_SIZE)
     assert(s0_1.toInt === 1)
     assert(s0_1.length === WORD_SIZE)
+    assert(s2_3.toHexString === "e12d4f0e")
   }
 
   it should "implement toHexString" in {
