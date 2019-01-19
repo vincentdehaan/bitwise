@@ -97,12 +97,12 @@ object BitSequence {
   def apply(i: Int): BitSequence = apply(i, WORD_SIZE)
 
   def apply(i: Int, size: Int, rev: Boolean = false): BitSequence = {
-    val bs = 0 until (size % 32) map (n => if ((i & (1 << n)) != 0) ONE else ZERO)
+    val bs = 0 until (size.min(32)) map (n => if ((i & (1 << n)) != 0) ONE else ZERO)
     // TODO: cleanup!
     // TODO: test!
     // TODO: what if size == 32?
-    if(rev) zeros(size - ((size - 1) % 32)) || new BitSequence(if (rev) bs.reverse else bs)
-    else new BitSequence(if (rev) bs.reverse else bs) || zeros(size - (size % 32))
+    if(rev) zeros(size - size.min(32)) || new BitSequence(if (rev) bs.reverse else bs)
+    else new BitSequence(if (rev) bs.reverse else bs) || zeros(size - size.min(32))
   }
 
   def zeros(len: Int): BitSequence = new BitSequence(List.fill(len)(ZERO))

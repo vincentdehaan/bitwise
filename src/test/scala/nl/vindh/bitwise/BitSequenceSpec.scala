@@ -11,6 +11,7 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     val bs1 = BitSequence(1)
     val bs17 = BitSequence(17)
     val bs218 = BitSequence(218)
+    val bs7long = BitSequence(7, 64)
 
     // Assert
     assert(bs0.toInt === 0)
@@ -21,6 +22,8 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     assert(bs17.bits.size === WORD_SIZE)
     assert(bs218.toInt === 218)
     assert(bs218.bits.size === WORD_SIZE)
+    assert(bs7long.toInt === 7)
+    assert(bs7long.bits.size === 64)
   }
 
   it should "generate a BitSequence from a hex string" in {
