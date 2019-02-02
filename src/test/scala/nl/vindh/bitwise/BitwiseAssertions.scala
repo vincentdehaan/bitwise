@@ -54,6 +54,13 @@ trait BitwiseAssertions extends Matchers {
     }
   }
 
+  def assertEquivalence(left: BitSequence, right: BitSequence): Unit = {
+    assert(left.bits.size === right.bits.size)
+    left.bits.zip(right.bits).foreach {
+      case (l, r) => assertEquivalence(l, r)
+    }
+  }
+
   // Asserts that f === op(left, right)
   def assertBinaryOperator(f: Bit, left: Bit, right: Bit, op: (Boolean, Boolean) => Boolean): Unit = {
     def bitToBool(b: Bit): Boolean = if(b == ONE) true else false

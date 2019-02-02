@@ -8,13 +8,21 @@ object Metrics {
     opTable: Map[String, Int] = Map()
   )
 
-  def countOperators(bit: Bit): OperatorCount = {
-    def mergeOpTables(tables: Iterable[Map[String, Int]]): Map[String, Int] = {
-      tables.foldLeft(Map[String, Int]()){
-        (acc, add) => (acc.keySet ++ add.keySet).map(key => key -> (acc.getOrElse(key, 0) + add.getOrElse(key, 0))).toMap
-      }
+  private def mergeOpTables(tables: Iterable[Map[String, Int]]): Map[String, Int] = {
+    tables.foldLeft(Map[String, Int]()){
+      (acc, add) => (acc.keySet ++ add.keySet).map(key => key -> (acc.getOrElse(key, 0) + add.getOrElse(key, 0))).toMap
     }
+  }
 
+  private def mergeOperatorCount(c1: OperatorCount, c2: OperatorCount): OperatorCount =
+    OperatorCount(
+      ops = c1.ops + c2.ops,
+      vars = c1.vars + c2.vars,
+      vals = c1.vals + c2.vals,
+      opTable = mergeOpTables(List(c1.opTable, c2.opTable))
+    )
+
+  def countOperators(bit: Bit): OperatorCount =
     bit match {
       case BitValue(_) => OperatorCount(vals = 1)
       case BitVar(_) => OperatorCount(vars = 1)
@@ -46,5 +54,7 @@ object Metrics {
       }
       case _ => OperatorCount(opTable = Map("UNKNOWN" -> 1))
     }
-  }
+
+  def countOperators(bs: BitSequence): OperatorCount =
+    bs.bits.map(countOperators(_)).foldLeft(OperatorCount())((acc, nw) => mergeOperatorCount(acc, nw))
 }

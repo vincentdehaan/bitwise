@@ -2,29 +2,9 @@ package nl.vindh.bitwise
 
 import scala.collection.mutable
 
-case class BitWithDefs(bit: Bit, defs: Map[BitVar, Bit]){
-  def substitute(vars: Valuation): Bit = {
-    // TODO: what if multiple simplifications have resulted in nested substitutions?
-    val substitutedDefs = defs.map(tup => (tup._1, tup._2.substitute(vars)))
-    val allVars = substitutedDefs ++ vars
-    bit.substitute(allVars)
-  }
-}
-
-case class BitSequenceWithDefs(bs: BitSequence, defs: Map[BitVar, Bit]) extends BitSequence(bs.bits){
-  override def constructor(bits: Seq[Bit]): BitSequence =
-    new BitSequenceWithDefs(new BitSequence(bits), defs)
-
-  override def substitute(vars: Valuation): BitSequenceWithDefs = {
-    // TODO: what if multiple simplifications have resulted in nested substitutions?
-    val substitutedDefs = defs.map(tup => (tup._1, tup._2.substitute(vars)))
-    val allVars = substitutedDefs ++ vars
-    BitSequenceWithDefs(super.substitute(allVars), substitutedDefs)
-  }
-}
-
 case class SimplifierConfig(
-  minimumOperatorCount: Int = 10
+  minimumOperatorCount: Int = 10,
+  substituteAll: Boolean = false
 )
 
 class VariableGenerator(prefix: String){
@@ -36,13 +16,40 @@ class VariableGenerator(prefix: String){
 }
 
 object Simplifier {
-  def substituteSubtrees(bit: Bit)(implicit vargen: VariableGenerator, config: SimplifierConfig): BitWithDefs = {
-    val bs = BitSequence.fromSeq(List(bit))
-    val bswd = substituteSubtrees(bs)
-    BitWithDefs(bswd.bs.bits(0), bswd.defs)
+  def substituteAll(bit: Bit)(implicit vargen: VariableGenerator): (Bit, Defs) =
+    bit match {
+      case _: BitVar => (bit, Map[BitVar, Bit]())
+      case _ => {
+        val newVar = vargen.next
+        (newVar, Map(newVar -> bit))
+      }
+    }
+
+  def substituteAll(bs: BitSequence)(implicit vargen: VariableGenerator): (BitSequence, Defs) = {
+    val tuples = bs.bits.map {
+      case v: BitVar => (v -> v)
+      case v: BitValue => (v -> v)
+      case b: Bit => {
+          val newVar = vargen.next
+          newVar -> b
+        }
+    }
+    val bits = tuples.map { case (v, _) => v}
+    val defs = tuples.filter {
+      case (_, _: BitVar) => false
+      case (_, _: BitValue) => false
+      case _ => true
+    }
+    (new BitSequence(bits), defs.toMap.asInstanceOf[Defs]) // TODO: the type inferencer does not understand that all non-variable bits are filtered out
   }
 
-  def substituteSubtrees(bs: BitSequence)(implicit vargen: VariableGenerator, config: SimplifierConfig): BitSequenceWithDefs = {
+  def substituteSubtrees(bit: Bit)(implicit vargen: VariableGenerator, config: SimplifierConfig): (Bit, Defs) = {
+    val bs = BitSequence.fromSeq(List(bit))
+    val (bs2, defs) = substituteSubtrees(bs)
+    (bs2.bits(0), defs)
+  }
+
+  def substituteSubtrees(bs: BitSequence)(implicit vargen: VariableGenerator, config: SimplifierConfig): (BitSequence, Defs) = {
     // Find all subtrees and register for each one the number of operands and the number of occurrences
     val subtrees = mutable.Map[Bit, (Int, Int)]()
 
@@ -55,13 +62,17 @@ object Simplifier {
       }
     }
 
-    val expensiveSubtrees = subtrees.filter {
-      case (bit, (ops, occ)) => ops * (occ - 1) >= config.minimumOperatorCount // TODO: make 10 configurable
-    }
+    val threshold = if(config.substituteAll) 0 else 1
 
+    val expensiveSubtrees = subtrees.filter {
+      case (bit, (ops, occ)) => ops * (occ - threshold) >= config.minimumOperatorCount
+    }
+//println(expensiveSubtrees.mkString("\n"))
     val defs = mutable.Map[BitVar, Bit]()
 
-    val newTrees = expensiveSubtrees.foldLeft(bs.bits){ // TODO: shouldn't I sort this first in order to start with the most expensive replacement
+    val newTrees = expensiveSubtrees.toList.sortBy {
+      case (_, (ops, occ)) => -ops * (occ - threshold)
+    }.foldLeft(bs.bits){
       (trees, subtreeWithMetadata) => {
         val v = vargen.next
         defs(v) = subtreeWithMetadata._1
@@ -69,7 +80,22 @@ object Simplifier {
       }
     }
 
-    BitSequenceWithDefs(BitSequence.fromSeq(newTrees), defs.toMap)
+    (BitSequence.fromSeq(newTrees), defs.toMap)
+  }
+
+  def getRelevantDefs(f: Bit, defs: Defs): Defs = {
+    val relevantDefs = scala.collection.mutable.Map[BitVar, Bit]()
+    traverseSubtrees(f){
+      case v: BitVar => defs.get(v) match {
+        case Some(d) => {
+          relevantDefs += (v -> d)
+          relevantDefs ++= getRelevantDefs(d, defs)
+        }
+        case _ =>
+      }
+      case _ =>
+    }
+    relevantDefs.toMap
   }
 
   private def traverseSubtrees(bit: Bit)(f: Bit => Unit): Unit = {

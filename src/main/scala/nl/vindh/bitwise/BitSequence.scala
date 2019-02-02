@@ -83,6 +83,28 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
         }
       }._1.reverse)
 
+  def +/ (that: BitSequence)(implicit vargen: VariableGenerator): (BitSequence, Defs) =
+    if(this.length != that.length) throw new Exception("Sequences not of same length")
+    else {
+      val defs = scala.collection.mutable.Map[BitVar, Bit]()
+
+      (constructor(this.bits.zip(that.bits).foldLeft[(List[Bit], Bit)]((Nil, ZERO)) {
+        (acc: (List[Bit], Bit), pair: (Bit, Bit)) => (acc, pair) match {
+          case ((lst: List[Bit], carry: Bit), (left: Bit, right: Bit)) =>
+            val newCarry = ((left ^ right) & carry) | left & right
+            val newVar = newCarry match {
+              case _: BitValue => newCarry
+              case _ => {
+                val v = vargen.next
+                defs += (v -> newCarry)
+                v
+              }
+            }
+            (((left ^ right) ^ carry) :: lst, newVar)
+        }
+      }._1.reverse), defs.toMap)
+    }
+
   def || (that: BitSequence): BitSequence = constructor(this.bits ++ that.bits)
 
   def || (that: Bit): BitSequence = constructor(this.bits ++ Seq(that))

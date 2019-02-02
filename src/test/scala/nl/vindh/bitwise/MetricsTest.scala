@@ -3,7 +3,7 @@ package nl.vindh.bitwise
 import org.scalatest._
 
 class MetricsTest extends FlatSpec with Matchers with BitVarXs {
-  "Metrics.countOperators" should "count operators" in {
+  "Metrics.countOperators" should "count operators in Bits" in {
     // Arrange
     val f1 = x1 | (x3 ^ x2)
     val f2 = x1 ^ x2 ^ x3 ^ x4
@@ -25,5 +25,16 @@ class MetricsTest extends FlatSpec with Matchers with BitVarXs {
     assert(c3 === Metrics.OperatorCount(ops = 1, vars = 2, vals = 0, opTable = Map("<->" -> 1)))
     assert(c4 === Metrics.OperatorCount(ops = 5, vars = 6, vals = 0, opTable = Map("^" -> 3, "|" -> 2)))
     assert(c5 === Metrics.OperatorCount(ops = 0, vars = 0, vals = 1, opTable = Map()))
+  }
+
+  it should "count operators in BitSequences" in {
+    // Arrange
+    val bs = new BitSequence(List(x1 & x2 | x3, x2 | x3 & !x4))
+
+    // Act
+    val c = Metrics.countOperators(bs)
+
+    // Assert
+    assert(c === Metrics.OperatorCount(ops = 5, vars = 6, vals = 0, opTable = Map("&" -> 2, "|" -> 2, "!" -> 1)))
   }
 }

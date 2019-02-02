@@ -171,6 +171,40 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     assert(s2_3.toHexString === "e12d4f0e")
   }
 
+  it should "implement +/" in {
+    // Arrange
+    val x = BitSequence.variable("x", 32)
+    val y = BitSequence.variable("y", 32)
+    implicit val vargen = new VariableGenerator("t")
+
+    // Act
+    val (s, d) = x +/ y
+
+    // Assert
+    val vx = Valuation(123, 32, "x")
+    val vy = Valuation(124, 32, "y")
+    val ss = s.substitute(d ++ vx ++ vy)
+    assert(ss.toInt === 123 + 124)
+  }
+
+  it should "handle +/ repeatedly" in {
+    // Arrange
+    val x = BitSequence.variable("x", 32)
+    val y = BitSequence.variable("y", 32)
+    val z = BitSequence.variable("z", 32)
+    implicit val vargen = new VariableGenerator("t")
+
+    // Act
+    val (s, d) = x +/ y +/ z
+
+    // Assert
+    val vx = Valuation(123, 32, "x")
+    val vy = Valuation(124, 32, "y")
+    val vz = Valuation(125, 32, "z")
+    val ss = s.substitute(d ++ vx ++ vy ++ vz)
+    assert(ss.toInt === 123 + 124 + 125)
+  }
+
   it should "implement toHexString" in {
     // Arrange
     val bs23 = BitSequence("17")
@@ -278,5 +312,25 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     assert(e.bits.length === 0)
     assert(g.bits.length == f.bits.length)
     assert(f === g)
+  }
+
+  "BitSequence.+" should "be able to add large numbers and variables repeatedly" in {
+    // Arrange
+    val x = BitSequence.variable("x", 32)
+    val y = BitSequence.variable("y", 32)
+    val z = BitSequence.variable("z", 32)
+    val u = BitSequence.variable("u", 32)
+    val v = BitSequence.variable("v", 32)
+
+    // Act
+    val sum = (x & y) + (y | z) + (z ^ u) + (u & v) + (v | x)
+
+    // Assert
+    val vx = Valuation(123, 32, "x")
+    val vy = Valuation(124, 32, "y")
+    val vz = Valuation(125, 32, "z")
+    val vu = Valuation(23, 32, "u")
+    val vv = Valuation(24, 32, "v")
+    assert(sum.substitute(vx ++ vy ++ vz ++ vu ++ vv).toInt === ((123 & 124) + (124 | 125) + (125 ^ 23) + (23 & 24) + (24 | 123)))
   }
 }

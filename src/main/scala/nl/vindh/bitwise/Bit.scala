@@ -6,7 +6,7 @@ trait Bit extends Any{
   def ^ (that: Bit): Bit = BitXor(List(this, that))
   def <-> (that: Bit): Bit = BitEq(this, that)
   def unary_! : Bit = BitNot(this)
-  def substitute(vars: Valuation): Bit
+  def substitute(defs: Defs): Bit
   def isCnf: Boolean = false // Returns true only if this is a cnf that associates to the right in both AND and OR
   private def isCnfClause: Boolean = false
   private[bitwise] def onlyAndOrNot: Bit
@@ -53,17 +53,18 @@ trait AssociativeOperator extends Bit {
 }
 
 object BitAnd {
+  //def apply(pair: (Bit, Bit)): Bit = pair match {
+  //  case (left: BitAnd[_], right: BitAnd[_]) =>
+  //}
   def apply[T <: Bit](bits: List[T]): Bit = // TODO: optimize this in one traversal
     if(bits.exists(_ == ZERO)) ZERO
     else if(bits.forall(_ == ONE)) ONE
     else {
-      val cleanBits = bits.flatMap(
-        bit => bit match {
-          case and: BitAnd[_] => and.bits // TODO: is pattern matching on BitAnd[T] impossible due to type erasure?
-          case ONE => Nil // We already know that not ALL elements are ONE
-          case bit => List(bit)
-        }
-      ).foldRight((Nil: List[Bit], Set(): Set[Bit], Set(): Set[Bit], ONE)) { // TODO: break loop earlier
+      val cleanBits = bits.flatMap {
+        case and: BitAnd[_] => and.bits // TODO: is pattern matching on BitAnd[T] impossible due to type erasure?
+        case ONE => Nil // We already know that not ALL elements are ONE
+        case bit => List(bit)
+      }.foldRight((Nil: List[Bit], Set(): Set[Bit], Set(): Set[Bit], ONE)) { // TODO: break loop earlier
         (l, r) => // TODO: _1 and _2 are the same; remove _1; also at BitOr
           l match {
             case BitNot(b) if(r._2.contains(b)) => (r._1, r._2, r._3, ZERO)
@@ -86,7 +87,7 @@ object BitAnd {
 
 case class BitAnd[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeOperator {
   private[bitwise] val opSymbol = "&"
-  def substitute(vars: Map[BitVar, Bit]): Bit = BitAnd(bits.map(_.substitute(vars)))
+  def substitute(vars: Defs): Bit = BitAnd(bits.map(_.substitute(vars)))
   def op: (Bit, Bit) => Bit = _ & _
 }
 
@@ -125,7 +126,7 @@ object BitOr {
 
 case class BitOr[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeOperator {
   private[bitwise] val opSymbol = "|"
-  def substitute(vars: Map[BitVar, Bit]): Bit = BitOr(bits.map(_.substitute(vars)))
+  def substitute(vars: Defs): Bit = BitOr(bits.map(_.substitute(vars)))
   def op: (Bit, Bit) => Bit = _ | _
   override private[bitwise] lazy val pushOrInside: Bit = {
     val headOrInside = bits.head.pushOrInside
@@ -162,7 +163,7 @@ object BitXor {
 
 case class BitXor[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeOperator {
   private[bitwise] val opSymbol = "^"
-  def substitute(vars: Map[BitVar, Bit]): Bit = BitXor(bits.map(_.substitute(vars)))
+  def substitute(vars: Defs): Bit = BitXor(bits.map(_.substitute(vars)))
   def op: (Bit, Bit) => Bit = _ ^ _
   override private[bitwise] lazy val onlyAndOrNot: Bit = {
     val headAndOrNot = bits.head.onlyAndOrNot
@@ -186,7 +187,7 @@ object BitEq {
 case class BitEq (left: Bit, right: Bit) extends BitFormula with BinaryOperator {
   override def toString: String = s"($left<->$right)"
   override val opSymbol: String = "<->"
-  def substitute(vars: Map[BitVar, Bit]): Bit = left.substitute(vars) <-> right.substitute(vars)
+  def substitute(vars: Defs): Bit = left.substitute(vars) <-> right.substitute(vars)
   def op: (Bit, Bit) => Bit = _ <-> _
   override private[bitwise] def onlyAndOrNot: Bit = {
     val leftAndOrNot = left.onlyAndOrNot
@@ -205,7 +206,7 @@ object BitNot {
 
 case class BitNot[T <: Bit] (bit: T) extends BitFormula {
   override def toString: String = s"(!$bit)"
-  def substitute(vars: Map[BitVar, Bit]): Bit = !bit.substitute(vars)
+  def substitute(vars: Defs): Bit = !bit.substitute(vars)
   private[bitwise] def onlyAndOrNot: Bit = !bit.onlyAndOrNot
   private[bitwise] def pushNotInside: Bit = bit match { // Apply De Morgan's laws
     case BitAnd(bits) => BitOr(bits.map(! _)).pushNotInside
@@ -222,5 +223,10 @@ object BitVar {
 
 case class BitVar (name: String) extends BitFormula with Atomic {
   override def toString: String = name
-  def substitute(vars: Map[BitVar, Bit]): Bit = vars.getOrElse(this, this)
+  def substitute(vars: Defs): Bit = vars.getOrElse(this, this) match {
+    case v: BitValue => v
+    case v: BitVar if !vars.contains(v) => v
+    case f => f.substitute(vars)
+  }
+
 }

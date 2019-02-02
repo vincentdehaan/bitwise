@@ -23,6 +23,7 @@ object Tseitin {
       operands match {
         case hd :: elt :: Nil => handleAssociativeOperatorWith2Operands(operands, apply)
         case hd :: tl => handleAssociativeOperatorWith2Operands(List(hd, apply(tl)), apply)
+        case Nil => throw new Exception("Operator has not been constructed using factory method")
       }
     }
 

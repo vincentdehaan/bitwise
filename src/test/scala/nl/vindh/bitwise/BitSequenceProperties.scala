@@ -24,6 +24,23 @@ class BitSequenceProperties extends FlatSpec with Matchers with GeneratorDrivenP
     }
   }
 
+  "BitSequence" should "implement +/" in {
+    // Arrange
+    forAll {
+      tup: (Int, Int) => {
+        val x = BitSequence(tup._1.abs % 256)
+        val y = BitSequence(tup._2.abs % 256)
+        implicit val vargen = new VariableGenerator("t")
+
+        // Act
+        val (s, d) = x +/ y
+
+        // Assert
+        assert(s.substitute(d).toInt === (((tup._1.abs % 256) + (tup._2.abs % 256)) % 256))
+      }
+    }
+  }
+
   it should "implement >>>" in {
     // Arrange
     val len = 32
