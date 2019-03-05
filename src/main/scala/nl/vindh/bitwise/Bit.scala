@@ -14,7 +14,6 @@ trait Bit extends Any{
   private[bitwise] def pushOrInside: Bit
 
   // TODO: clean up repetitions in or and and clauses
-  // TODO: toCNF
 }
 
 // TODO: is this still a value type now that it's a case class?
@@ -220,7 +219,7 @@ case class BitNot[T <: Bit] (bit: T) extends BitFormula {
 object BitVar {
   def apply(name: String): BitVar = new BitVar(name)
 }
-
+// TODO: add integer-based BitVar
 case class BitVar (name: String) extends BitFormula with Atomic {
   override def toString: String = name
   def substitute(vars: Defs): Bit = vars.getOrElse(this, this) match {

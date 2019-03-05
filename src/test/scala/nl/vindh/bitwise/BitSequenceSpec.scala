@@ -232,8 +232,7 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     val xs = BitSequence.variable("x", 4)
 
     // Assert
-    // TODO: this test gives stack overflow error; seems to be the same problem as my research project
-    //assert(xs === new BitSequence(Array(x0, x1, x2, x3)))
+    assert(xs === new BitSequence(Array(x0, x1, x2, x3)))
   }
 
   it should "implement substitute" in {
@@ -245,8 +244,7 @@ class BitSequenceSpec extends FlatSpec with Matchers with BitVarXs {
     val s = xs.substitute(m)
 
     // Assert
-    // TODO: idem
-    //assert(s === new BitSequence(List(x0, ZERO, ONE, x3)))
+    assert(s === new BitSequence(List(x0, ZERO, ONE, x3)))
   }
 
   it should "behave like a normal collection" in {

@@ -8,6 +8,8 @@ object Metrics {
     opTable: Map[String, Int] = Map()
   )
 
+  case class CnfMetrics(clauses: Int, clauseLengths: Map[Int, Int])
+
   private def mergeOpTables(tables: Iterable[Map[String, Int]]): Map[String, Int] = {
     tables.foldLeft(Map[String, Int]()){
       (acc, add) => (acc.keySet ++ add.keySet).map(key => key -> (acc.getOrElse(key, 0) + add.getOrElse(key, 0))).toMap
@@ -54,6 +56,33 @@ object Metrics {
       }
       case _ => OperatorCount(opTable = Map("UNKNOWN" -> 1))
     }
+
+  // TODO: add tests
+  def cnfMetrics(bit: Bit): CnfMetrics = {
+    def isClause(or: BitOr[_]): Boolean = or.bits.forall {
+      case _: BitValue => true
+      case _: BitVar => true
+      case BitNot(BitVar(_)) => true
+      case _ => false
+    }
+
+    bit match {
+      case bit: BitAnd[_] => {
+        val clauseLengths = bit.bits.map {
+          case or: BitOr[_] if isClause (or) => or.bits.size
+          case _: BitValue => 1
+          case _: BitVar => 1
+          case BitNot (_: BitVar) => 1
+          case e => throw new Exception (s"Not a CNF! Expression found: $e")
+        }.groupBy ((x: Int) => x).map {
+          case (key, keys) => (key, keys.size)
+        }
+        CnfMetrics (bit.bits.size, clauseLengths)
+      }
+      case _: BitValue => CnfMetrics(1, Map(1 -> 1))
+      case _: BitVar => CnfMetrics(1, Map(1 -> 1))
+      case _ => throw new Exception("Not a CNF!")
+  }}
 
   def countOperators(bs: BitSequence): OperatorCount =
     bs.bits.map(countOperators(_)).foldLeft(OperatorCount())((acc, nw) => mergeOperatorCount(acc, nw))

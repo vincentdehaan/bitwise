@@ -37,4 +37,15 @@ class MetricsTest extends FlatSpec with Matchers with BitVarXs {
     // Assert
     assert(c === Metrics.OperatorCount(ops = 5, vars = 6, vals = 0, opTable = Map("&" -> 2, "|" -> 2, "!" -> 1)))
   }
+
+  "Metrics.cnfMetrics" should "measure a CNF" in {
+    // Arrange
+    val cnf1 = !x1 & (x2 | x3) & (x3 | x4) & (x1 | x2)
+
+    // Act
+    val metric1 = Metrics.cnfMetrics(cnf1)
+
+    // Assert
+    assert(metric1 === Metrics.CnfMetrics(4, Map(1 -> 1, 2 -> 3)))
+  }
 }

@@ -4,8 +4,7 @@ import nl.vindh.bitwise._
 
 object DimacsWriter {
   def cnfToDimacs(cnf: Bit): (DimacsFile, Map[BitVar, Int]) = {
-    // TODO: eliminate ._1, ._2
-    val variableMap = getVariables(cnf).zipWithIndex.map(x => (x._1, x._2 + 1)).toMap
+    val variableMap = getVariables(cnf).zipWithIndex.map { case (varr, idx) => (varr, idx + 1) }.toMap
 
     def andClauses(andList: List[Bit]): List[List[Int]] =
       andList.map {
@@ -56,14 +55,13 @@ trait DimacsFileElement {
 }
 
 case class DimacsFile(comments: List[DimacsComment], problem: DimacsProblem, clauses: DimacsClauses) extends DimacsFileElement {
-  override def text: String = comments.map(_.text).mkString("\n") + problem.text + clauses.text
+  override def text: String = List(comments.map(_.text).mkString("\n"), problem.text, clauses.text).mkString("\n")
 }
 
 case class DimacsComment(str: String) extends DimacsFileElement {
   override def text: String = s"c $str"
 }
 
-// TODO: clauses seems to print a value that is much too large
 case class DimacsProblem(vars: Int, clauses: Int) extends DimacsFileElement {
   override def text: String = s"p cnf $vars $clauses"
 }

@@ -3,6 +3,7 @@ package nl.vindh.bitwise
 import org.scalatest._
 
 class TseitinSpec extends FlatSpec with Matchers with BitwiseAssertions with BitVarXs {
+  implicit val vargen = new VariableGenerator("tstn")
   "Tseitin.transform" should "generate a CNF that is equisatisfiable" in {
     // Arrange
     val f1 = ((x1 | x2) & x3) <-> !x4

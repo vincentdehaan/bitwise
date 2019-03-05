@@ -1,24 +1,16 @@
 package nl.vindh.bitwise
 
 object Tseitin {
-  def transform(bit: Bit): Bit = {
+  def transform(bit: Bit)(implicit vargen: VariableGenerator): Bit = {
     val (clauses, varOption) = getClauses(bit)
     BitAnd(varOption :: clauses.map(clause => clause.toCnf))
   }
 
-  def transform(seq: BitSequence): BitSequence =
+  def transform(seq: BitSequence)(implicit vargen: VariableGenerator): BitSequence =
     //new BitSequence(seq.map(transform(_)))
     new BitSequence(seq.bits.map(transform(_)))
 
-  // TODO: start over for every transformation
-  val varPrefix = "tstn"
-  var varCounter = 0
-  def getNewVar: BitVar = {
-    varCounter = varCounter + 1
-    BitVar(varPrefix + varCounter)
-  }
-
-  def getClauses(f: Bit): (List[TseitinClause], Bit) = {
+  def getClauses(f: Bit)(implicit vargen: VariableGenerator): (List[TseitinClause], Bit) = {
     def handleAssociativeOperator(operands: List[Bit], apply: List[Bit] => Bit): (List[TseitinClause], Bit) = {
       operands match {
         case hd :: elt :: Nil => handleAssociativeOperatorWith2Operands(operands, apply)
@@ -29,7 +21,7 @@ object Tseitin {
 
     def handleAssociativeOperatorWith2Operands(operands: List[Bit], apply: List[Bit] => Bit): (List[TseitinClause], Bit) = {
       val (clauseListList, varList) = operands.map(f => getClauses(f)).unzip
-      val newVar = getNewVar
+      val newVar = vargen.next
       (
         TseitinClause(
           newVar,
@@ -44,7 +36,7 @@ object Tseitin {
       case v: BitValue => (Nil, v)
       case BitNot(n) => {
         val (clauses, varr) = getClauses(n)
-        val newVar = getNewVar
+        val newVar = vargen.next
         (
           TseitinClause(newVar, BitNot(varr)) :: clauses,
           newVar
@@ -56,7 +48,7 @@ object Tseitin {
       case BitEq(left, right) => {
         val (clauseListLeft, varLeft) = getClauses(left)
         val (clauseListRight, varRight) = getClauses(right)
-        val newVar = getNewVar
+        val newVar = vargen.next
         (
           TseitinClause(
             newVar,
