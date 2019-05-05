@@ -69,7 +69,7 @@ class SimplifierSpec extends FlatSpec with Matchers with BitVarXs with BitwiseAs
     val bs2 = bss.substitute(d)
 
     // Assert
-    assert(bs2 === bs)
+    assertEquivalence(bs2, bs)
   }
 
   it should "substitute all formulas for a single variable" in {

@@ -200,7 +200,7 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions with BitVarX
     val andOrNot = f.onlyAndOrNot
 
     // Assert
-    assert(andOrNot === f)
+    assertEquivalence(andOrNot, f)
   }
 
   it should "implement pushNotInside" in {
@@ -247,7 +247,7 @@ class BitSpec extends FlatSpec with Matchers with BitwiseAssertions with BitVarX
     val andOrNot = f.onlyAndOrNot
 
     // Assert
-    assert(andOrNot === f)
+    assertEquivalence(andOrNot, f)
   }
 
   it should "implement pushNotInside" in {

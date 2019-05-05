@@ -52,36 +52,26 @@ trait AssociativeOperator extends Bit {
 }
 
 object BitAnd {
-  //def apply(pair: (Bit, Bit)): Bit = pair match {
-  //  case (left: BitAnd[_], right: BitAnd[_]) =>
-  //}
-  def apply[T <: Bit](bits: List[T]): Bit = // TODO: optimize this in one traversal
-    if(bits.exists(_ == ZERO)) ZERO
-    else if(bits.forall(_ == ONE)) ONE
-    else {
-      val cleanBits = bits.flatMap {
-        case and: BitAnd[_] => and.bits // TODO: is pattern matching on BitAnd[T] impossible due to type erasure?
-        case ONE => Nil // We already know that not ALL elements are ONE
-        case bit => List(bit)
-      }.foldRight((Nil: List[Bit], Set(): Set[Bit], Set(): Set[Bit], ONE)) { // TODO: break loop earlier
-        (l, r) => // TODO: _1 and _2 are the same; remove _1; also at BitOr
-          l match {
-            case BitNot(b) if(r._2.contains(b)) => (r._1, r._2, r._3, ZERO)
-            case b if(r._3.contains(b)) => (r._1, r._2, r._3, ZERO)
-            case b if(r._2.contains(b)) => r
-            case b => b match {
-              case BitNot(bb) => (b :: r._1, r._2 + b, r._3 + bb, r._4)
-              case _ => (b :: r._1, r._2 + b, r._3, r._4)
-            }
-          }
-      }
-      if(cleanBits._4 == ZERO) ZERO
-      else if(cleanBits._1.size == 1) cleanBits._1.head
-      else new BitAnd(cleanBits._1)
+  // TODO: handle !x1 & x1
+  private def cleanList(clean: List[Bit], bits: List[Bit]): List[Bit] =
+    bits match {
+      case Nil => clean
+      case ZERO :: _ => List(ZERO)
+      case ONE :: Nil => clean
+      case ONE :: tl => cleanList(clean, tl)
+      case BitNot(n) :: _ if clean.contains(n) => List(ZERO)
+      case v :: tl if clean.contains(v) => cleanList(clean, tl)
+      // TODO: the next two clauses are not tail-recursive, is this a problem?
+      case (a: BitAnd[_]) :: tl => cleanList(clean ::: cleanList(Nil, a.bits), tl)
+      case v :: tl => cleanList(v :: clean, tl)
     }
 
-  // TODO: solve this with the type system
-  private[bitwise] def cleanApply(bits: List[Bit]): Bit = new BitAnd(bits)
+  def apply[T <: Bit](bits: List[T]): Bit = // TODO: optimize this in one traversal
+    cleanList(Nil, bits) match {
+      case Nil => ONE
+      case v :: Nil => v
+      case lst => new BitAnd(lst)
+    }
 }
 
 case class BitAnd[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeOperator {
@@ -91,36 +81,26 @@ case class BitAnd[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeO
 }
 
 object BitOr {
-  def apply[T <: Bit] (bits: List[T]): Bit =
-    if(bits.exists(_ == ONE)) ONE
-    else if(bits.forall(_ == ZERO)) ZERO
-    else {
-      val cleanBits = bits.flatMap(
-        bit => bit match {
-          case or: BitOr[_] => or.bits
-          case ZERO => Nil
-          case bit => List(bit)
-        }
-      ).foldRight((Nil: List[Bit], Set(): Set[Bit], Set(): Set[Bit], ZERO)) { // TODO: break loop earlier
-        (l, r) =>
-          l match {
-            case BitNot(b) if(r._2.contains(b)) => (r._1, r._2, r._3, ONE)
-            case b if(r._3.contains(b)) => (r._1, r._2, r._3, ONE)
-            case b if(r._2.contains(b)) => r
-            case b => b match {
-              case BitNot(bb) => (b :: r._1, r._2 + b, r._3 + bb, r._4)
-              case _ => (b :: r._1, r._2 + b, r._3, r._4)
-            }
-          }
-      }
-      if(cleanBits._4 == ONE) ONE
-      else if(cleanBits._1.size == 1) cleanBits._1.head
-      else new BitOr(cleanBits._1)
-
-
+  // TODO: handle !x1 | x1
+  private def cleanList(clean: List[Bit], bits: List[Bit]): List[Bit] =
+    bits match {
+      case Nil => clean
+      case ONE :: _ => List(ONE)
+      case ZERO :: Nil => clean
+      case ZERO :: tl => cleanList(clean, tl)
+      case BitNot(n) :: tl if clean.contains(n) => List(ONE)
+      case v :: tl if clean.contains(v) => cleanList(clean, tl)
+      // TODO: the next two clauses are not tail-recursive, is this a problem?
+      case (o: BitOr[_]) :: tl => cleanList(clean ::: cleanList(Nil, o.bits), tl)
+      case v :: tl => cleanList(v :: clean, tl)
     }
-  // TODO: solve this with the type system
-  private[bitwise] def cleanApply(bits: List[Bit]): Bit = new BitOr(bits)
+
+  def apply[T <: Bit] (bits: List[T]): Bit =
+    cleanList(Nil, bits) match {
+      case Nil => ZERO
+      case v :: Nil => v
+      case lst => new BitOr(lst)
+    }
 }
 
 case class BitOr[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeOperator {
@@ -143,13 +123,12 @@ case class BitOr[T <: Bit] (bits: List[T]) extends BitFormula with AssociativeOp
 object BitXor {
   def apply[T <: Bit] (bits: List[T]): Bit = {
     val countOnes = bits.count(_ == ONE)
-    val cleanBits = bits.flatMap(
-      _ match {
-        case xor: BitXor[_] => xor.bits
-        case _: BitValue => Nil
-        case bit => List(bit)
-      }
-    )
+    val cleanBits = bits.flatMap {
+      case xor: BitXor[_] => xor.bits
+      case _: BitValue => Nil
+      case bit => List(bit)
+    }
+
     val cleanBitsWithOne = if(countOnes % 2 == 1) ONE :: cleanBits else cleanBits
     cleanBitsWithOne match {
       case Nil => ZERO
