@@ -1,5 +1,7 @@
 package nl.vindh.bitwise
 
+import nl.vindh.bitwise.util.VarLength
+
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -116,7 +118,7 @@ class BitSequence (val bits: Seq[Bit]) extends IndexedSeq[Bit]{ // TODO: immutab
 }
 
 object BitSequence {
-  def apply(i: Int): BitSequence = apply(i, WORD_SIZE)
+  def apply(i: Int)(implicit len: VarLength): BitSequence = apply(i, len.x)
 
   def apply(i: Int, size: Int, rev: Boolean = false): BitSequence = {
     val bs = 0 until (size.min(32)) map (n => if ((i & (1 << n)) != 0) ONE else ZERO)

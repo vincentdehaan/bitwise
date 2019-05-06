@@ -51,3 +51,20 @@ val vz = Valuation(123, 8, "z")
 c.substitute(vx).substitute(vy).substitute(vz).toInt // yields 59, which is actually the result of 17 + 42 & 123
 ```
 
+## Application: solving equations using a SAT-solver
+
+Before we get started, we need to define the length of our variables for the rest of this example:
+```scala
+import nl.vindh.bitwise.util._
+implicit val len = VarLength(8) // all variables will be 8-bit from now on
+```
+
+We define an equation (`3x + 2 = 23`): 
+```scala
+val eq1 = Equation(x => x + x + x + BitSequence(2), 23)
+```
+
+And solve it using a SAT solver:
+```scala
+Sat4JWrapper.solveForInt(eq1) // yields Some(7)
+```

@@ -1,12 +1,15 @@
 package nl.vindh
 
+import nl.vindh.bitwise.util.VarLength
+
 package object bitwise {
   type Valuation = Map[BitVar, BitValue]
   type Defs = Map[BitVar, Bit]
 
   val ZERO = new BitValue(false)
   val ONE = new BitValue(true)
-  val WORD_SIZE = 8
+  val WORD_SIZE = 8 // TODO: remove this if possible
+  implicit val len = VarLength(8)
 
   implicit class BitSequenceWithDefs(self: (BitSequence, Defs)){
     def +/ (that: BitSequence)(implicit vargen: VariableGenerator): (BitSequence, Defs) = self match {
